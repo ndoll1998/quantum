@@ -65,7 +65,7 @@ class TISE(object):
         bounds = np.asarray(bounds)
         # build regular grid
         axes = [np.arange(b, e, dx) for (b, e) in bounds]
-        grid = np.stack(np.meshgrid(*axes), axis=-1)
+        grid = np.stack(np.meshgrid(*axes, indexing='ij'), axis=-1)
         shape = grid.shape[:-1]
 
         # compute hamiltonian operator and solve equation

@@ -1,6 +1,7 @@
 import numpy as np
 from quantum.core.wave import WaveFunction
-from scipy.special import factorial, genlaguerre, lpmv
+from quantum.utils.legendre import LegendreFunction
+from scipy.special import factorial, genlaguerre
 
 class HydrogenLike(WaveFunction):
     """ Wave Function describing the electron of an Hydrogen-Like atom.
@@ -21,7 +22,16 @@ class HydrogenLike(WaveFunction):
         self.l = l
         self.m = m
         # TODO: compute total energy
-        self.E = 1.0
+        self.E = -1.0
+
+        # compute some constants
+        self.r_factor = np.sqrt((2.0/n)**3 * factorial(n - l - 1) / (2 * n * factorial(n + l)))
+        self.sh_factor = (-1)**m * np.sqrt((2*l + 1) * factorial(l - m) / (4 * np.pi * factorial(l + m)))
+        # polynomials
+        self.laguerre = genlaguerre(n-l-1, 2*l+1)
+        self.laguerre_dx = np.polyder(self.laguerre)
+        self.legendre = LegendreFunction(m, l)
+        self.legendre_dx = self.legendre.deriv
 
     def radial(self, r:np.ndarray) -> np.ndarray:
         """ Compute the normalized radial part of the wave function 
@@ -34,12 +44,9 @@ class HydrogenLike(WaveFunction):
         """
         # get quantum numbers as shorthands
         n, l = self.n, self.l
-        # some frequently occuring terms
-        x = (2.0 / n)
-        xr = x * r
         # compute the final expression
-        return np.sqrt(x**3 * factorial(n - l - 1) / (2 * n * factorial(n + l))) * \
-            np.exp(-r / n) * (xr ** l) * genlaguerre(n-l-1, 2*l+1)(xr)
+        x = (2.0 / n) * r
+        return self.r_factor * np.exp(-r / n) * (x ** l) * self.laguerre(x)
 
     def spherical_harmonics(self,
         theta:np.ndarray,
@@ -57,7 +64,7 @@ class HydrogenLike(WaveFunction):
         # get quantum numbers as shorthands
         l, m = self.l, self.m
         # compute the polar and azimuthal component
-        f = (-1)**m * np.sqrt((2*l + 1) * factorial(l - m) / (4 * np.pi * factorial(l + m))) * lpmv(m, l, np.cos(theta))
+        f = self.sh_factor * self.legendre(np.cos(theta))
         g = np.exp(1j * m * phi)
         # return spherical harmonics
         return f * g
@@ -68,9 +75,7 @@ class HydrogenLike(WaveFunction):
         """ Evaluate the Time-Independent Wave Function at the given coordinates in spherical coordinate system
             
             Args:
-                r (np.ndarray): radius
-                theta (np.ndarray): the polar angle
-                phi (np.ndarray): the azimuthal angle
+                x (np.ndarray): input in spherical coordinates
 
             Returns:
                 y (np.ndarray): wave-function values at given input, i.e. :math: $y = \psi(x, y, z)$
@@ -93,34 +98,24 @@ class HydrogenLike(WaveFunction):
         # get quantum numbers as shorthands
         n, l, m = self.n, self.l, self.m
         
-        # some frequently occuring terms
-        x = (2.0 / n)
-        xr = x * r
-        # compute radial component and its derivative
-        radial = self.radial(r)
-        dfdr = np.sqrt(x**3 * factorial(n - l - 1) / (2 * n * factorial(n + l))) * \
-            1.0/n * xr**(l-1) * np.exp(-r / n) * (
-                (2*l - xr) * genlaguerre(n-l-1, 2*l+1)(xr) + \
-                2 * xr * np.polyder(genlaguerre(n-l-1, 2*l+1))(xr)
-            )
+        x = (2.0 / n) * r
+        # evaluate function values of all components
+        radial = self.r_factor * np.exp(-r / n) * (x ** l) * self.laguerre(x)
+        angular_polar = self.sh_factor * self.legendre(np.cos(theta))
+        angular_azimutal = np.exp(1j * m * phi)
 
-        # frequently occuring terms
-        ct = np.cos(theta)
-        lgdr = lpmv(m, l, ct)
-        a = (-1)**m * np.sqrt((2*l + 1) * factorial(l - m) / (4 * np.pi * factorial(l + m)))
-        # compute the polar and azimuthal component
-        f = a * lgdr
-        g = np.exp(1j * m * phi)
-        
         # avoid division by zero
-        ct = np.clip(ct, -0.999, 0.999)
+        ct = np.clip(np.cos(theta), -0.999, 0.999)        
+        # compute derivative of radial component
+        radial_dr = self.r_factor * (1.0/n) * x**(l-1) * np.exp(-r / n) * (
+            (2*l - x) * self.laguerre(x) + 2 * x * self.laguerre_dx(x)
+        )
         # compute partial derviatives of angular components
-        dfdt = a * (-((1 - ct**2)**-0.5) * lpmv(m+1, l, ct) - (m * ct) / (1 - ct**2) * lgdr) * -np.sin(theta)
-        dgdp = 1j * m * g
-        
-        # combine to compute final partial derivatives
+        angular_dtheta = self.sh_factor * self.legendre_dx(np.cos(theta)) * -np.sin(theta)
+        angular_dphi = 1j * m * angular_azimutal
+
         return np.stack((
-            dfdr * f * g,
-            radial * dfdt * g,
-            radial * f * dgdp
-        ), axis=-1) * np.exp(1j * self.E * t)
+            radial_dr * angular_polar  * angular_azimutal,
+            radial    * angular_dtheta * angular_azimutal / (np.sin(phi) * r + 1e-5),
+            radial    * angular_polar  * angular_dphi     / (r + 1e-5)
+        ), axis=-1) * np.exp(-1j * self.E * t)

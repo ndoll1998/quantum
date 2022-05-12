@@ -35,3 +35,14 @@ class BohmianMechanics(object):
             qs.append(q)
         # stack trajectory points to build full trajectories
         return np.stack(qs, axis=0)
+
+    def simulate(
+        self,
+        q:np.ndarray,
+        t0:float,
+        dt:float
+    ) -> iter:
+        t = t0
+        while True:
+            t, q = rk4(t=t, dt=dt, x=q, f=self.dxdt)
+            yield t, q
