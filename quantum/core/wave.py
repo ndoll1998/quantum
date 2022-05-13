@@ -137,7 +137,7 @@ class WaveFunction(ABC):
         return self.__mul__(other)
    
     def __add__(self, other:"WaveFunction") -> "SuperPositionAny":
-        """ Add a wave function creating a superposition representing the either one of both states """
+        """ Add a wave function creating a superposition of either one of both states """
         return SuperPositionAny(self, other)
 
 
