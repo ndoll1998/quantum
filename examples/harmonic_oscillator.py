@@ -34,4 +34,5 @@ def harmonic_oscillator(
 if __name__ == '__main__':
 
     fig = harmonic_oscillator(n=13, t=0.1)
-    fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")
+    plt.show()
+    # fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")

@@ -49,4 +49,5 @@ def infinite_square_well_trajectories(
 if __name__ == '__main__':
 
     fig = infinite_square_well_trajectories(num_particles=20)
+    plt.show()
     fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")

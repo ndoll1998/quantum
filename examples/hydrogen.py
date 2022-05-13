@@ -89,4 +89,5 @@ def hydrogen(
 if __name__ == '__main__':
 
     fig = hydrogen(t=0)
+    plt.show()
     fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")

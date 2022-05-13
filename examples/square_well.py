@@ -48,4 +48,5 @@ def infinite_square_well_1d(
 if __name__ == '__main__':
 
     fig = infinite_square_well_1d(n=2, t=0.3)
+    plt.show()
     fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")

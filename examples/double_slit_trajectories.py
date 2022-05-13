@@ -30,4 +30,5 @@ def double_slit_trajectories(
 if __name__ == '__main__':
 
     fig = double_slit_trajectories(num_particles=1000)
-    fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")
+    plt.show()
+    # fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")

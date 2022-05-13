@@ -69,16 +69,14 @@ class HydrogenLike(WaveFunction):
         # return spherical harmonics
         return f * g
 
-    def psi(self, 
-        x:np.ndarray
-    ) -> np.ndarray:
+    def ti_psi(self, x:np.ndarray) -> np.ndarray:
         """ Evaluate the Time-Independent Wave Function at the given coordinates in spherical coordinate system
             
             Args:
                 x (np.ndarray): input in spherical coordinates
 
             Returns:
-                y (np.ndarray): wave-function values at given input, i.e. :math: $y = \psi(x, y, z)$
+                y (np.ndarray): wave-function values at given input, i.e. :math: $y = \psi(t, \theta, \phi)$
         """
         # check input shape
         assert x.shape[-1] == 3
@@ -86,11 +84,15 @@ class HydrogenLike(WaveFunction):
         # compute wave function
         return self.radial(r) * self.spherical_harmonics(theta, phi)
 
-    def gradient(
-        self,
-        x:np.ndarray,
-        t:float
-    ) -> np.ndarray:
+    def ti_gradient(self, x:np.ndarray) -> np.ndarray:
+        """ Evaluate the time-indipendent spatial gradient at the given position
+
+            Args:
+                x (np.ndarray): position at which to evaluate the gradient in spherical coordiantes
+
+            Returns:
+                dydx (np.ndarray): the spherical gradient of the wave function at the given position
+        """
         # check input shape
         assert x.shape[-1] == 3
         r, theta, phi = x[..., 0], x[..., 1], x[..., 2]
@@ -118,4 +120,4 @@ class HydrogenLike(WaveFunction):
             radial_dr * angular_polar  * angular_azimutal,
             radial    * angular_dtheta * angular_azimutal / (np.sin(phi) * r + 1e-5),
             radial    * angular_polar  * angular_dphi     / (r + 1e-5)
-        ), axis=-1) * np.exp(-1j * self.E * t)
+        ), axis=-1)
