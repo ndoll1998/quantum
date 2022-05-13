@@ -1,6 +1,7 @@
 import numpy as np
 from quantum.core.wave import WaveFunction
 from quantum.utils.rk4 import rk4
+from typing import Union
 
 class BohmianMechanics(object):
     """ Compute Particle Trajectories following the de Broglie-Bohm theory (for spin=0) 

@@ -5,20 +5,25 @@ import matplotlib.pyplot as plt
 def double_slit_trajectories(
     num_particles:int
 ) -> plt.Figure:
-    
-    # using analytic solution
-    wf = quantum.analytic.DoubleSlit1D()
+
+    # superposition, particle can start out in any of the two slits
+    wf = quantum.analytic.GaussianWavePacket(v=[0.1, 0.0], x0=[0.0, 1.0], s0=0.2) + \
+        quantum.analytic.GaussianWavePacket(v=[0.1, 0.0], x0=[0.0, -1.0], s0=0.2)
+
     # create initial particle positions within slits
-    # and time steps at which to evaluate for their trajectories
     q = np.random.uniform(-1, 1, size=(num_particles, 1))
-    q = q + np.sign(q) * (0.5 * wf.sd)
+    q = np.concatenate((
+        np.zeros_like(q), 
+        1.0 * q + 0.5 * np.sign(q)
+    ), axis=-1)
+    # time steps at which to evaluate for their trajectories
     t = np.arange(0, 2, 0.01)
 
     # compute bohmian trajectories
     Q = quantum.extra.BohmianMechanics(wave=wf).trajectory(q=q, t=t)
     # plot trajectories
     fig, ax = plt.subplots(1, 1, figsize=(8, 4))
-    ax.plot(t, Q[..., 0], color='black', alpha=0.05)
+    ax.plot(t, Q[..., 1], color='black', alpha=0.05)
     ax.set(
         title="Bohmian Trajectories for Double Slit Experiment",
         xlabel="t", ylabel="x",
