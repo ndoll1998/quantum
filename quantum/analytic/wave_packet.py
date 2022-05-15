@@ -14,7 +14,7 @@ class GaussianWavePacket(WaveFunction):
             the initial position of the wave packet. Must match the
             shape of the velocity
         s0 (float): 
-            the square widht of the wave packet
+            the square width of the wave packet
     """
 
     def __init__(
