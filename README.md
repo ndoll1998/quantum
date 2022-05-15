@@ -23,7 +23,7 @@ python -m pip install -f requirements.txt
 
 ## Modules
 
-The library can is separated into the following modular components:
+The library is separated into the following modular components:
 
 | Module | Desciption |
 | :---   | :---       |
