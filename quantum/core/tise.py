@@ -107,7 +107,7 @@ class TISE(object):
         The dimensionality is limited by the dimensionality of the potential energy function.
 
         Args:
-            V (Callable[[np.ndarray], np.ndarray]): the potential energy function
+            V (Callable[[np.ndarray], np.ndarray]): the time-independent potential energy function
     """
 
     def __init__(
@@ -154,7 +154,9 @@ class TISE(object):
                     boundaries of the regular grid on which the equation will be evaluated 
                     given as array of shape (ndim, 2) where ndim is the number of positional 
                     dimensions of the schrödinger equation. Note that ndim is only limited by
-                    the potential energy function `V`.
+                    the potential energy function `V`. Make sure to choose the boundaries such
+                    that the boundary conditions for the quantum state can be met to guarantee
+                    accurate solutions.
                 dx (float): distance between points on regular grid
                 **kwargs (Any): 
                     extra keyword arguments passed to the eigenpair solver. 
