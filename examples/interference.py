@@ -25,7 +25,7 @@ def interference_pattern():
     ax.imshow(y, cmap='plasma')
     ax.set(
         title="Interference Pattern of superimposing two freely moving particles",
-        ylabel="$t = x_0/t$", xlabel="$x_1$",
+        ylabel="$t = x_0/v_0$", xlabel="$x_1$",
         yticks=range(0, len(t), 40), yticklabels=t[::40],
         xticks=range(0, 601, 60), xticklabels=np.arange(-15, 15.1, 0.05*60)
     )
@@ -63,7 +63,7 @@ def interference_trajectories(
 
 if __name__ == '__main__':
 
-    # fig = interference_pattern()
-    fig = interference_trajectories(num_particles=5000)
+    fig = interference_pattern()
+    # fig = interference_trajectories(num_particles=5000)
     plt.show()
     # fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")
