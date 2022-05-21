@@ -4,3 +4,4 @@ from .core.tise import TISE
 from . import utils
 from . import extra
 from . import analytic
+from . import chemistry

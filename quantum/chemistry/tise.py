@@ -9,7 +9,14 @@ from .orbital import GaussianOrbital, MolecularOrbital
 from .utils import MMD_E, MMD_R
 
 class ElectronicTISE(TISE):
-    
+    """ Electronic Schroedinger Equation 
+
+        Args:
+            basis (List[GaussianOrbitals]): basis in which the equation is defined
+            C (np.ndarray): the nuclei positions (i.e. atom positions) given in the shape (n, 3) where n refers to the number of atoms.
+            Z (np.ndarray): the principle quantum numbers (i.e. numclei charges) of the each atim given in the shape (n,)
+    """
+
     def __init__(self, 
         basis:List[GaussianOrbital],
         C:np.ndarray,
@@ -26,6 +33,17 @@ class ElectronicTISE(TISE):
         self.E_nn = self.nuclear_nuclear_repulsion(C, Z)
 
     def overlap(self, basis:List[GaussianOrbital]) -> np.ndarray:
+        """ Compute the overlap matrix of the given basis.
+            See Equations (100) and (101) in Helgaker and Taylor.
+
+            Args:
+                basis (List[GaussianOrbital]): orbitals over which to compute the pairwise overlaps
+
+            Returns:
+                S (np.ndarray): 
+                    the overlap matrix of shape (m, m) where m is the number of orbitals in the basis.
+                    S_ij refers to the overlap value of the orbitals with index i and j in the basis.
+        """
         # create matrix to store values in
         n = len(basis)
         S = np.empty((n, n))
@@ -53,6 +71,16 @@ class ElectronicTISE(TISE):
         return S
 
     def kinetic(self, basis:List[GaussianOrbital]) -> np.ndarray:
+        """ Compute the kinetic energy matrix for the given basis.
+            See Equations (100) and (116) in Helgaker and Taylor.
+
+            Args:
+                basis (List[GaussianOrbital]): orbitals
+
+            Returns:
+                T (np.ndarray): 
+                    the kintec energy matrix of shape (m, m) where m is the number of orbitals in the basis.
+        """
         # create matrix to store values in
         n = len(basis)
         T = np.empty((n, n))
@@ -98,6 +126,18 @@ class ElectronicTISE(TISE):
         C:np.ndarray,
         Z:np.ndarray
     ) -> np.ndarray:
+        """ Compute the electron-nuclear attraction energy matrix for the given basis.
+            See Equations (199) and (204) in Helgaker and Taylor.
+
+            Args:
+                basis (List[GaussianOrbital]): orbitals
+                C (np.ndarray): the nuclei positions in shape (3, n) where n refers to the number of nuclei
+                Z (np.ndarray): the nuclei charges given in shape (n,)
+
+            Returns:
+                V_en (np.ndarray): 
+                    the attaction energy matrix of shape (m, m) where m is the number of orbitals in the basis.
+        """
         # create matrix to store values in
         n = len(basis)
         V = np.empty((n, n))
@@ -138,6 +178,16 @@ class ElectronicTISE(TISE):
         return V
 
     def electron_electron_repulsion(self, basis:List[GaussianOrbital]) -> np.ndarray:
+        """ Compute the electron-electron repulsion energy matrix for the given basis.
+            See Equations (199) and (205) in Helgaker and Taylor.
+
+            Args:
+                basis (List[GaussianOrbital]): orbitals
+
+            Returns:
+                V_ee (np.ndarray): 
+                    the repulsion energy matrix of shape (m, m) where m is the number of orbitals in the basis.
+        """
         # create matrix to store values in
         n = len(basis)
         V = np.empty((n, n, n, n))
@@ -207,6 +257,15 @@ class ElectronicTISE(TISE):
         return V 
 
     def nuclear_nuclear_repulsion(self, C:np.ndarray, Z:np.ndarray) -> float:
+        """ compute the nuclear-nuclear repulsion energy
+
+            Args:
+                C (np.ndarray): the nuclei positions in shape (3, n) where n refers to the number of nuclei
+                Z (np.ndarray): the nuclei charges given in shape (n,)
+                
+            Returns:
+                E_nn (float): the repulsion energy value
+        """
         # compute pairwise distances between nuclei
         # and set diagonal from one to avoid divison by zero
         R = pdist(C, metric='euclidean')
@@ -225,7 +284,20 @@ class ElectronicTISE(TISE):
         max_cycles:int =20,
         tol:float =1e-5
     ) -> Tuple[float, List[MolecularOrbital]]:
-        
+        """ Implements the restricted hartree-fock method also known as the self-consistent field (SCF) method 
+
+            Args:
+                num_occ_orbitals (int): 
+                    the number of occupied orbitals, i.e. half the number of electrons in the system.
+                    Defaults to 1.
+                max_cycles (int): the maximum number of SCF cycles to do.
+                tol (float): tolerance value used to detect convergence.
+
+            Returns:
+                E (float): the total estimated energy, i.e. the estimated electronic energy plus the nuclear-nuclear repulsion energy
+                MOs (List[MolecularOrbital]): the molecular orbitals found by the SCF method
+        """
+
         # build core hamiltonian matrix
         H_core = self.T + self.V_en
         # define initial density matrix
@@ -278,6 +350,18 @@ class ElectronicTISE(TISE):
         max_cycles:int =20,
         tol:float =1e-5
     ) -> List[MolecularOrbital]:
+        """ Solve the electronic schroedinger equation using hartree-fock method.
+
+            Args:
+                num_occ_orbitals (int): 
+                    the number of occupied orbitals, i.e. half the number of electrons in the system.
+                    Defaults to 1.
+                max_cycles (int): the maximum number of SCF cycles to do.
+                tol (float): tolerance value used to detect convergence.
+
+            Returns:
+                MOs (List[MolecularOrbital]): the molecular orbitals found by the SCF method
+        """
         # use restricted hartree fock
         _, MOs = self.restricted_hartree_fock(
             num_occ_orbitals=num_occ_orbitals,

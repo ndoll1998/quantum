@@ -4,7 +4,22 @@ from quantum.core.wave import WaveFunction
 from typing import List
 
 class GaussianOrbital(WaveFunction):
-    """ Cartesian Gaussian Type Orbital (GTO) """    
+    """ Cartesian Gaussian Type Orbital (GTO)
+
+        Args:
+            alpha (np.ndarray): 
+                the exponents of the primitive gaussians. Each value defines to 
+                exactly one primitive gaussian. Must be of shape (n,).
+            ceoff (np.ndarray):
+                the scaling coefficients of the primitive gassians. Each value
+                defines the weight of the corresponding gaussian. Must be of shape (n,).
+            origin (np.ndarray):
+                the origin of the orbital. Must be of shape (ndim,) where ndim is the dimensionality
+                of the orbital (usually ndim=3).
+            angular (np.ndarray):
+                the degree of the polynomial in each spatial dimension. Loosely referred to as the
+                angular quantum numbers. Must be of shape (ndim,).
+    """
 
     def __init__(
         self,
@@ -39,9 +54,19 @@ class GaussianOrbital(WaveFunction):
         )
 
     def ti_psi(self, x:np.ndarray) -> np.ndarray:
+        """ Evaluate the time-indipendent component of the wave GTO at a given position 
+
+            Args:
+                x (np.ndarray): 
+                    the position of at which to evaluate the GTO. Must be of shape (..., ndim).
+
+            Returns:
+                y (np.ndarray):
+                    the amplitudes of the wave function at the given positions 
+        """
         # compute distance to origin
         x = x - self.origin
-        R2 = np.sum(x**2, axis=-1, keepdims=True)
+        R2 = np.sum(x*x, axis=-1, keepdims=True)
         # evaluate primitive gaussians and polynomial term
         g = np.exp(-self.alpha * R2)
         p = np.prod(x**self.angular, axis=-1)
@@ -49,6 +74,12 @@ class GaussianOrbital(WaveFunction):
         return p * np.sum(self.N * self.coeff * g, axis=-1)
 
 class MolecularOrbital(WaveFunction):
+    """ Molecular Orbital defined as a linear combination of Gaussian Type Orbitals 
+
+        Args:
+            coeff (np.ndarray): the weights of the GTOs. Must be of shape (n,) where n is the number of GTOs in the basis.
+            basis (List[GaussianOrbital]): the basis build of n GTOs. Each GTO must be of the exact same spatial dimension ndim.
+    """
 
     def __init__(
         self,
@@ -63,6 +94,16 @@ class MolecularOrbital(WaveFunction):
         super(MolecularOrbital, self).__init__(E=E)
     
     def ti_psi(self, x:np.ndarray) -> np.ndarray:
+        """ Evaluate the time-indipendent component of the MO 
+
+            Args:
+                x (np.ndarray):
+                    the position at which to evaluate the wave function. Must be of shape (..., ndim).
+            
+            Returns:
+                y (np.ndarray):
+                    the amplitudes of the wave function at the given positions 
+        """
         # evaluate all atomic orbitals and compute weighted sum
         y = np.stack([ao.ti_psi(x) for ao in self.basis], axis=-1)
         return np.sum(self.coeff * y, axis=-1)

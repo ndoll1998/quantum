@@ -10,6 +10,22 @@ def MMD_E(
     A:float,
     B:float
 ) -> np.ndarray:
+    """ McMurphi-Davidson recursion for the compuation of the Hermite Gaussian expansion coefficients.
+        See Equations (73), (74) and (75) in Helgaker and Taylor.
+
+        Args:
+            i (int): orbital angular momentum number of gaussian a
+            j (int): orbital angular momentum number of gaussian b
+            t (int): number of nodes in the Hermite polynomial
+            alpha (np.ndarray): exponents of the gaussian a. Shape must be broadcastable with beta.
+            beta (np.ndarray): exponents of the gaussian b. Shape must be broadcastable with alpha.
+            A (float): origin of gaussian a
+            B (float): origin of gaussian b
+
+        Returns:
+            E (np.ndarray): 
+                the expansion coefficients for the given gaussians. The shape matches the broadcast result of alpha and beta.
+    """
 
     # TODO: dynamic programming
 
@@ -43,6 +59,23 @@ def MMD_R(
     P:np.ndarray,
     C:np.ndarray
 ) -> np.ndarray:
+    """ McMurphi-Davidson recursion for the computation of the coulomb auxiliary hermite integrals.
+        See Equations (189), (190), (191) and (192) in Helgaker and Taylor.
+
+        Args:
+            t (int): order of the derivative in x-coordinate
+            u (int): order of the derivative in y-coordinate
+            v (int): order of the derivative in z-coordinate
+            n (int): order of the boys function
+            alpha (np.ndarray): 
+                exponent of composite gaussian ab. Each value defines a composite gaussian.
+                Must be of shape broadcastable with C and P without last dimension ndim.
+            P (np.ndarray): center of gaussian a. Must be of shape (..., ndim) broadcastable with C.
+            C (np.ndarray): center of gaussian b. Must be of shape (..., ndim) broadcastable with P.
+
+        Returns:
+            R (np.ndarray): hermite integral values of same shape as alpha.
+    """
 
     # compute distance
     PC = P - C
