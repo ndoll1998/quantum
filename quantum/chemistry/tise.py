@@ -316,7 +316,7 @@ class ElectronicTISE(TISE):
 
             # form fock operator and diagonalize to obtain
             # molecular orbital energies and coefficients
-            F = self.T + self.V_en + G
+            F = H_core + G
             E_mol, C = linalg.eigh(F, self.S)
 
             # form next density matrix

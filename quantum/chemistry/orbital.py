@@ -79,6 +79,7 @@ class MolecularOrbital(WaveFunction):
         Args:
             coeff (np.ndarray): the weights of the GTOs. Must be of shape (n,) where n is the number of GTOs in the basis.
             basis (List[GaussianOrbital]): the basis build of n GTOs. Each GTO must be of the exact same spatial dimension ndim.
+            E (float): Energy of the molecular orbital
     """
 
     def __init__(
