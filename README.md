@@ -78,7 +78,7 @@ The following visualization shows the real and complex components of a wave func
 
 ### Superposition: Interference Pattern
 
-A somewhat more involved example is to generate the interference pattern by superimposing free-moving particles. A freely moving particle can be represented by a gaussian wave packet which has an analytic form. The following code snippet creates a wave function that descibes a sinle particle in double slit experiment (from `examples/interference.py`):
+A somewhat more involved example is to generate the interference pattern by superimposing free-moving particles. A freely moving particle can be represented by a gaussian wave packet which has an analytic form. The following code snippet creates a wave function that descibes a single particle in the setup of the double slit experiment (from `examples/interference.py`):
 
 ```python
 wf = quantum.analytic.GaussianWavePacket(v=[0.1, 0.0], x0=[0.0, 1.0], s0=0.2) + \
