@@ -22,7 +22,7 @@ class Atom(object):
         self.Z = Z
         # check basis
         assert len(self.basis) > 0, "No GTOs provided!"
-        assert all(o.origin == basis[0].origin for o in basis[1:]), "Origins don't match!"
+        assert all((o.origin == basis[0].origin).all() for o in basis[1:]), "Origins don't match!"
     
     @property
     def origin(self) -> np.ndarray:
