@@ -1,10 +1,11 @@
+import warnings
 import numpy as np
 from scipy import linalg
 from scipy.spatial.distance import pdist, squareform
 from itertools import product
 from typing import List, Tuple
-import warnings
 from quantum.core.tise import TISE
+from .structs import Molecule
 from .orbital import GaussianOrbital, MolecularOrbital
 from .utils import MMD_E, MMD_R
 
@@ -31,6 +32,23 @@ class ElectronicTISE(TISE):
         self.V_ee = self.electron_electron_repulsion(basis)
         # compute nuclear-nuclear repulsion energy
         self.E_nn = self.nuclear_nuclear_repulsion(C, Z)
+
+    @classmethod
+    def from_molecule(cls, molecule:Molecule) -> "ElectronicTISE":
+        """ Initialize an electronic schroedinger equation directly from
+            a molecule instance.
+    
+            Args:
+                molecule (Molecule): the molecule instance
+            
+            Returns:
+                tise (ElectronicTISE): schroedinger equation defined by the olecule
+        """
+        return cls(
+            basis=molecule.basis,
+            C=molecule.origins,
+            Z=molecule.Zs
+        )
 
     def overlap(self, basis:List[GaussianOrbital]) -> np.ndarray:
         """ Compute the overlap matrix of the given basis.
