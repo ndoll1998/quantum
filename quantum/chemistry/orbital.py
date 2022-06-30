@@ -14,11 +14,11 @@ class GaussianOrbital(WaveFunction):
                 the scaling coefficients of the primitive gassians. Each value
                 defines the weight of the corresponding gaussian. Must be of shape (n,).
             origin (np.ndarray):
-                the origin of the orbital. Must be of shape (ndim,) where ndim is the dimensionality
-                of the orbital (usually ndim=3).
+                the origin of the orbital in units of Bohr. Must be of shape (ndim,) where
+                ndim is the dimensionality of the orbital (usually ndim=3).
             angular (np.ndarray):
-                the degree of the polynomial in each spatial dimension. Loosely referred to as the
-                angular quantum numbers. Must be of shape (ndim,).
+                the degree of the polynomial in each spatial dimension. Loosely referred
+                to as the angular quantum numbers. Must be of shape (ndim,).
     """
 
     def __init__(
@@ -79,7 +79,7 @@ class MolecularOrbital(WaveFunction):
         Args:
             coeff (np.ndarray): the weights of the GTOs. Must be of shape (n,) where n is the number of GTOs in the basis.
             basis (List[GaussianOrbital]): the basis build of n GTOs. Each GTO must be of the exact same spatial dimension ndim.
-            E (float): Energy of the molecular orbital
+            E (float): Energy of the molecular orbital (usually in units of Hartree)
     """
 
     def __init__(

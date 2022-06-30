@@ -3,7 +3,7 @@ from scipy import linalg
 from scipy.spatial.distance import pdist, squareform
 from itertools import product
 from typing import List, Tuple
-
+import warnings
 from quantum.core.tise import TISE
 from .orbital import GaussianOrbital, MolecularOrbital
 from .utils import MMD_E, MMD_R
@@ -13,8 +13,8 @@ class ElectronicTISE(TISE):
 
         Args:
             basis (List[GaussianOrbitals]): basis in which the equation is defined
-            C (np.ndarray): the nuclei positions (i.e. atom positions) given in the shape (n, 3) where n refers to the number of atoms.
-            Z (np.ndarray): the principle quantum numbers (i.e. numclei charges) of the each atim given in the shape (n,)
+            C (np.ndarray): the nuclei positions (i.e. atom positions) in units of Bohr and shape of (n, 3) where n refers to the number of atoms.
+            Z (np.ndarray): the principle quantum numbers (i.e. nuclei charges) of the each atim given in the shape (n,)
     """
 
     def __init__(self, 
@@ -294,7 +294,7 @@ class ElectronicTISE(TISE):
                 tol (float): tolerance value used to detect convergence.
 
             Returns:
-                E (float): the total estimated energy, i.e. the estimated electronic energy plus the nuclear-nuclear repulsion energy
+                E (float): the total estimated energy in units of Hartree, i.e. the estimated electronic energy plus the nuclear-nuclear repulsion energy
                 MOs (List[MolecularOrbital]): the molecular orbitals found by the SCF method
         """
 
@@ -331,7 +331,10 @@ class ElectronicTISE(TISE):
 
             # update old electronic energy value
             E_elec_prev = E_elec
-            
+        else:
+            # convergence not met
+            warnings.warn("Convergence not met in SCF cycle!", UserWarning)            
+
         # build all molecular orbitals
         MOs = [
             MolecularOrbital(
