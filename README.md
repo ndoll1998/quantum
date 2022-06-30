@@ -142,40 +142,18 @@ Plugging this into the `BohmianMechanics` class and visualizing the correspondin
 
 ### Bond Dissociation Curves of Molecules
 
-After working with one-electron atoms the next step is to consider molecules. There is no analytic solution to schrödinger equation of molecules. However with a fair amount of approximations the electronic schrödinger equation can be solved numerically. A first approximation is the desciption of atoms. Here an atom is typically described by a set of Gaussian Type Orbitals (GTOs), which together approximate the electron orbitals of the atom. The following code snippet defines two hydrogen atoms with different origins:
+After working with one-electron atoms the next step is to consider molecules. There is no analytic solution to schrödinger equation of molecules. However with a fair amount of approximations the electronic schrödinger equation can be solved numerically. A first approximation is the desciption of atoms. Here an atom is typically described by a set of Gaussian Type Orbitals (GTOs), which together approximate the electron orbitals of the atom. The following code snippet defines two hydrogen atoms with different origins in the STO-3G basis using the API provided by [BasisSetExchange](https://www.basissetexchange.org/):
 
 ```python
 # hydrogen 1s orbital in STO-3G basis taken from basis-set-exchange
-H_1 = [
-    GaussianOrbital(
-        alpha=[0.3425250914E+01, 0.6239137298E+00, 0.1688554040E+00],
-        coeff=[0.1543289673E+00, 0.5353281423E+00, 0.4446345422E+00],
-        origin=[0.0, 0, 0.0],
-        angular=[0, 0, 0]
-    )
-]
-# hydrogen 1s oribital in STO-3G basis with different origin
-H_2 = [
-    GaussianOrbital(
-        alpha=[0.3425250914E+01, 0.6239137298E+00, 0.1688554040E+00],
-        coeff=[0.1543289673E+00, 0.5353281423E+00, 0.4446345422E+00],
-        origin=[0.0, 0, 1.4],
-        angular=[0, 0, 0]
-    )
-]
+H_1 = Atom.from_BSE(basis="STO-3G", element="H")
+H_2 = Atom.from_BSE(basis="STO-3G", element="H", origin=[0, 0, 1.4])
 ```
 
 A molecule then is decribed by the union of all the GTOs of its atoms together with the atom positions and nuclei charges. Putting all this information togther, the corresponding electronic schrödinger equation can be created and solved as follows:
 
 ```python
-tise = ElectronicTISE(
-    molecule=H_1 + H_2,
-    C=np.asarray(
-        [0, 0, 0],
-        [0, 0, 1.4]
-    ),
-    Z=np.asarray([1, 1])
-)
+tise = ElectronicTISE.from_molecule(molecule=H_1 + H_2)
 # solve using restricted hartree fock
 E, MOs = tise.restricted_hartree_fock()
 ```
