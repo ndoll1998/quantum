@@ -29,6 +29,7 @@ The library is separated into the following modular components:
 | :---   | :---       |
 | core   | Holds core classes including the `WaveFunction` and `TISE`. |
 | analytic | Contains analytic solutions to the schrödinger equation for well-known potentials. This includes the `HydrogenLike` wave funciton. |
+| chemistry | Holds quantum chemistry components providing functionality to approximate molecular orbitals. Main classes are the `ElectronicTISE` and `GaussianOrbital`. |
 | extra | Extra functionality building on top of but is not used within the library. E.g. the `BohmianMechanics` class is part of this module. |
 | utils | Utilities used throughout the library. |
 
@@ -139,7 +140,51 @@ Plugging this into the `BohmianMechanics` class and visualizing the correspondin
 
 ![Hydrogen Visualization](./docs/hydrogen.png)
 
+### Bond Dissociation Curves of Molecules
+
+After working with one-electron atoms the next step is to consider molecules. There is no analytic solution to schrödinger equation of molecules. However with a fair amount of approximations the electronic schrödinger equation can be solved numerically. A first approximation is the desciption of atoms. Here an atom is typically described by a set of Gaussian Type Orbitals (GTOs), which together approximate the electron orbitals of the atom. The following code snippet defines two hydrogen atoms with different origins:
+
+```python
+# hydrogen 1s orbital in STO-3G basis taken from basis-set-exchange
+H_1 = [
+    GaussianOrbital(
+        alpha=[0.3425250914E+01, 0.6239137298E+00, 0.1688554040E+00],
+        coeff=[0.1543289673E+00, 0.5353281423E+00, 0.4446345422E+00],
+        origin=[0.0, 0, 0.0],
+        angular=[0, 0, 0]
+    )
+]
+# hydrogen 1s oribital in STO-3G basis with different origin
+H_2 = [
+    GaussianOrbital(
+        alpha=[0.3425250914E+01, 0.6239137298E+00, 0.1688554040E+00],
+        coeff=[0.1543289673E+00, 0.5353281423E+00, 0.4446345422E+00],
+        origin=[0.0, 0, 1.4],
+        angular=[0, 0, 0]
+    )
+]
+```
+
+A molecule then is decribed by the union of all the GTOs of its atoms together with the atom positions and nuclei charges. Putting all this information togther, the corresponding electronic schrödinger equation can be created and solved as follows:
+
+```python
+tise = ElectronicTISE(
+    molecule=H_1 + H_2,
+    C=np.asarray(
+        [0, 0, 0],
+        [0, 0, 1.4]
+    ),
+    Z=np.asarray([1, 1])
+)
+# solve using restricted hartree fock
+E, MOs = tise.restricted_hartree_fock()
+```
+
+Repeating the above for different atomic distances and plotting the result leads to the following figure (from `examples/hartree_fock.py`):
+
+![H2 Bond Dissociation Curve](./docs/H2_dissociation.png)
+
 ## Future Work
 
- - implement Hartree-Fock method
+ - implement molecular structual optimization using gradient descent to minimize Hartree Fock energy
  - visualize bohmian trajectories for molecular orbits
