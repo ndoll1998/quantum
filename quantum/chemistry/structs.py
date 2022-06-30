@@ -43,6 +43,60 @@ class Atom(object):
         elif isinstance(other, Atom):
             return Molecule(self, other)
 
+    @classmethod
+    def from_BSE(
+        cls,
+        basis:str,
+        element:str,
+        origin=np.zeros(3)
+    ) -> "Atom":
+        """ Initialize using values gathered from Basis Set Exchange.
+
+            Args:
+                basis (str): name of the basis to use
+                element (str): name or principal quantum number of the element
+
+            Returns:
+                atom (Atom): resulting atom of given element in specified basis
+        """
+        import requests
+        # call to api and parse response
+        resp = requests.get("https://www.basissetexchange.org/api/basis/%s/format/json?elements=%s" % (basis, element))
+        data = resp.json()
+        # check
+        assert all(ftype == 'gto' for ftype in data['function_types']), "Only GTO function type is supported!"
+        assert len(data['elements']) == 1, "Expected only a single element but got %d!" % len(data['elements'])        
+        # read element
+        Z, data = next(iter(data['elements'].items()))
+        alphas = [basis['exponents'] for basis in data['electron_shells']]
+        coefficients = [basis['coefficients'] for basis in data['electron_shells']]
+        angular_quantum_numbers = [basis['angular_momentum'] for basis in data['electron_shells']]
+        # check values
+        assert all(len(c) == len(a) for c, a in zip(coefficients, angular_quantum_numbers)), "Coefficients and angular momenta don't match up!"
+        
+        def yield_angular_momenta(aqn):
+            # build all lists of three components with their sum 
+            # matching the angular quantum number
+            for i in range(aqn + 1):
+                for j in range(aqn + 1 - i):
+                    yield [i, j, aqn - i - j]
+
+        # create atom
+        return Atom(
+            basis=[
+                GaussianOrbital(
+                    alpha=list(map(float, alpha)),
+                    coeff=list(map(float, coeff)),
+                    origin=origin,
+                    angular=angular
+                )
+                for alpha, coeffs, aqns in zip(alphas, coefficients, angular_quantum_numbers)
+                for aqn, coeff in zip(aqns, coeffs)
+                for angular in yield_angular_momenta(aqn)
+            ],
+            Z=int(Z)
+        )
+
 class Molecule(object):
     """ Molecule described by a number of atoms 
 
