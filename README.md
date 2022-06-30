@@ -142,7 +142,7 @@ Plugging this into the `BohmianMechanics` class and visualizing the correspondin
 
 ### Bond Dissociation Curves of Molecules
 
-After working with one-electron atoms the next step is to consider molecules. There is no analytic solution to schrödinger equation of molecules. However with a fair amount of approximations the electronic schrödinger equation can be solved numerically. A first approximation is the desciption of atoms. Here an atom is typically described by a set of Gaussian Type Orbitals (GTOs), which together approximate the electron orbitals of the atom. The following code snippet defines two hydrogen atoms with different origins in the STO-3G basis using the API provided by [BasisSetExchange](https://www.basissetexchange.org/):
+After working with one-electron atoms the next step is to consider molecules. There is no analytic solution to the schrödinger equation of molecules. However with a fair amount of approximations the electronic schrödinger equation can be solved numerically. A first approximation is the desciption of atoms. Here an atom is typically described by a set of Gaussian Type Orbitals (GTOs), which together approximate the electron orbitals of the atom. The following code snippet defines two hydrogen atoms with different origins in the STO-3G basis using the API provided by [BasisSetExchange](https://www.basissetexchange.org/):
 
 ```python
 # hydrogen 1s orbital in STO-3G basis taken from basis-set-exchange
