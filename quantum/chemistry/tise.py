@@ -131,7 +131,7 @@ class ElectronicTISE(TISE):
 
             Args:
                 basis (List[GaussianOrbital]): orbitals
-                C (np.ndarray): the nuclei positions in shape (3, n) where n refers to the number of nuclei
+                C (np.ndarray): the nuclei positions in shape (n, 3) where n refers to the number of nuclei
                 Z (np.ndarray): the nuclei charges given in shape (n,)
 
             Returns:
