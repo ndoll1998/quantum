@@ -9,9 +9,9 @@ class LegendreFunction(object):
     """
 
     def __init__(self, m:int, v:int) -> None:
-        self.m = m
-        self.lgdr = np.polynomial.legendre.Legendre([0] * v + [1]).deriv(m)
-        self.lgdr_dx = np.polynomial.legendre.Legendre([0] * v + [1]).deriv(m+1)
+        self.m = abs(m)
+        self.lgdr = np.polynomial.legendre.Legendre([0] * v + [1]).deriv(self.m)
+        self.lgdr_dx = np.polynomial.legendre.Legendre([0] * v + [1]).deriv(self.m+1)
 
     def __call__(self, x:np.ndarray) -> np.ndarray:
         """ Evaluate the legendre function at specific position
@@ -33,6 +33,11 @@ class LegendreFunction(object):
             Returns:
                 dydx (np.ndarray): the gradient evaluated at the specific position
         """
+        if self.m == 0:
+            # reduces to zero for m=0
+            # catch to avoid division by zero errors
+            return np.zeros_like(x)
+
         y = 1.0 - x*x
         return (-1)**self.m * (
             self.lgdr_dx(x) * y**(self.m/2.0) - \

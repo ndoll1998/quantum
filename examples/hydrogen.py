@@ -6,9 +6,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-def hydrogen(
-    t:float
-) -> plt.Figure:
+def hydrogen() -> plt.Figure:
 
     # create analytic wave function
     wf = quantum.analytic.HydrogenLike(5, 3, 1)
@@ -101,7 +99,7 @@ def hydrogen(
         )
     )
     ax2.set(
-        title="Probability Mesh",
+        title="Orbitals",
         xlim=[-R, R],
         ylim=[-R, R],
         zlim=[-R, R],
@@ -145,5 +143,5 @@ def hydrogen(
 
 if __name__ == '__main__':
 
-    fig = hydrogen(t=0)
+    fig = hydrogen()
     fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")
