@@ -127,7 +127,7 @@ wf = quantum.analytic.HydrogenLike(5, 3, 1)
 The easiest way to create initial positions for the trajectories is to simply sample points on the probability density function implied by the wave function. This can be done by using multi-dimensional inverse transfer sampling as follows (from `examples/hydrogen.py`):
 
 ```python
-# sanple points from probability density at time t=0
+# sample points from probability density at time t=0
 s = quantum.utils.sampling.inverse_transfer_sampling(
     pdf=partial(wf.pdf, t=0), 
     num_samples=50000,
