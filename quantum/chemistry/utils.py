@@ -24,7 +24,8 @@ def MMD_E(
 
         Returns:
             E (np.ndarray): 
-                the expansion coefficients for the given gaussians. The shape matches the broadcast result of alpha and beta.
+                the expansion coefficients for the given gaussians. The shape matches the broadcast
+                result of alpha and beta.
     """
 
     # TODO: dynamic programming
@@ -49,6 +50,72 @@ def MMD_E(
         return 1.0 / (2.0 * p) * MMD_E(i, j-1, t-1, alpha, beta, A, B) \
             + q * Q / beta * MMD_E(i, j-1, t, alpha, beta, A, B) \
             + (t + 1) * MMD_E(i, j-1, t+1, alpha, beta, A, B)
+
+def MMD_dEdx(
+    i:int,
+    j:int,
+    t:int,
+    n:int,
+    alpha:np.ndarray,
+    beta:np.ndarray,
+    A:float,
+    B:float
+) -> np.ndarray:
+    """ McMurphi-Davidson recursion computing the derivative of the Hermite Gaussian expansion coefficients.
+        See Equation (20) in 'On the evaluation of derivatives of Gaussian integrals' (1992) by Helgaker and Taylor.
+
+        Args:
+            i (int): orbital angular momentum number of gaussian a
+            j (int): orbital angular momentum number of gaussian b
+            t (int): number of nodes in the Hermite polynomial
+            n (int): n-th derivative to take
+            alpha (np.ndarray): exponents of the gaussian a. Shape must be broadcastable with beta.
+            beta (np.ndarray): exponents of the gaussian b. Shape must be broadcastable with alpha.
+            A (float): origin of gaussian a
+            B (float): origin of gaussian b
+
+        Returns:
+            E (np.ndarray): 
+                derivatives of the expansion coefficients for the given gaussians. The shape matches the 
+                broadcast result of alpha and beta.
+    """
+
+    Q = A - B
+    p = alpha + beta
+    q = alpha * beta / p
+
+    if (t < 0) or (t > (i+j)) or (n < 0):
+        # trivial case: out of bounds
+        return 0.0
+
+    if n == 0:
+        # trivial case: 0-th derivative
+        return MMD_E(i, j, t, alpha, beta, A, B)
+    
+    if i == j == t == 0:
+        # decrement index n
+        return -2 * q * (
+            Q * MMD_dEdx(0, 0, 0, n-1, alpha, beta, A, B) + \
+            n * MMD_dEdx(0, 0, 0, n-2, alpha, beta, A, B)
+        )
+
+    if j == 0:
+        # decrement index i
+        return 1.0 / (2.0 * p) * MMD_dEdx(i-1, j, t-1, n, alpha, beta, A, B) - \
+            q / alpha * (
+                Q * MMD_dEdx(i-1, j, t, n, alpha, beta, A, B) + \
+                n * MMD_dEdx(i-1, j, t, n-1, alpha, beta, A, B)
+            ) + \
+            (t + 1) * MMD_dEdx(i-1, j, t+1, n, alpha, beta, A, B)
+
+    else:
+        # decrement index j
+        return 1.0 / (2.0 * p) * MMD_dEdx(i, j-1, t-1, n, alpha, beta, A, B) + \
+            q / beta * (
+                Q * MMD_dEdx(i, j-1, t, n, alpha, beta, A, B) + \
+                n * MMD_dEdx(i, j-1, t, n-1, alpha, beta, A, B)
+            ) + \
+            (t + 1) * MMD_dEdx(i, j-1, t+1, n, alpha, beta, A, B)
 
 def MMD_R(
     t:int,

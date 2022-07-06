@@ -285,7 +285,7 @@ class ElectronicTISE(TISE):
                 E_nn (float): the repulsion energy value
         """
         # compute pairwise distances between nuclei
-        # and set diagonal from one to avoid divison by zero
+        # and set diagonal to one to avoid divison by zero
         R = pdist(C, metric='euclidean')
         R = squareform(R)
         np.fill_diagonal(R, 1.0)
@@ -312,8 +312,13 @@ class ElectronicTISE(TISE):
                 tol (float): tolerance value used to detect convergence.
 
             Returns:
-                E (float): the total estimated energy in units of Hartree, i.e. the estimated electronic energy plus the nuclear-nuclear repulsion energy
-                MOs (List[MolecularOrbital]): the molecular orbitals found by the SCF method
+                E (float): 
+                    the total estimated energy in units of Hartree, i.e. the estimated 
+                    electronic energy plus the nuclear-nuclear repulsion energy
+                C (np.ndarray): The eigenvectors of F, i.e. molecular orbital coefficient matrix
+                F (np.ndarray): 
+                    diagonal entries of the fock matrix in the molecular orbital 
+                    basis C (i.e. F is diagonal). In other words these are the eigenvalues of the fock matrix, i.e. the energies of the corresponding molecular orbitals.
         """
 
         # build core hamiltonian matrix
@@ -353,17 +358,8 @@ class ElectronicTISE(TISE):
             # convergence not met
             warnings.warn("Convergence not met in SCF cycle!", UserWarning)            
 
-        # build all molecular orbitals
-        MOs = [
-            MolecularOrbital(
-                coeff=C[:, i],
-                basis=self.basis,
-                E=E_mol[i]
-            )
-            for i in range(n)
-        ]
         # return electronic energy and molecular orbitals
-        return E_elec + self.E_nn, MOs
+        return E_elec + self.E_nn, C, E_mol
 
     def solve(
         self,
@@ -384,10 +380,17 @@ class ElectronicTISE(TISE):
                 MOs (List[MolecularOrbital]): the molecular orbitals found by the SCF method
         """
         # use restricted hartree fock
-        _, MOs = self.restricted_hartree_fock(
+        _, C, F = self.restricted_hartree_fock(
             num_occ_orbitals=num_occ_orbitals,
             max_cycles=max_cycles,
             tol=tol
         )
-        # return all molecular orbitals
-        return MOs
+        # build all molecular orbitals
+        return [
+            MolecularOrbital(
+                coeff=C[:, i],
+                basis=self.basis,
+                E=F[i]
+            )
+            for i in range(F.shape[0])
+        ]

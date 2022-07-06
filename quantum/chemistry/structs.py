@@ -37,6 +37,9 @@ class Atom(object):
         for o in self.basis:
             o.origin = origin
 
+    def __len__(self) -> int:
+        return len(self.basis)
+
     def __add__(self, other:Union["Atom", "Molecule"]) -> "Molecule":
         if isinstance(other, Molecule):
             return Molecule(self, *other.atoms)
