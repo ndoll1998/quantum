@@ -38,7 +38,7 @@ def geometry_optimization():
     ax.set(
         title="Gradient Descent Optimization",
         xlabel="iteration",
-        ylabel="Energy in Hertree ($Ha$)"
+        ylabel="Energy in Hartree ($Ha$)"
     )
     
     # plot atom origins and bonds
