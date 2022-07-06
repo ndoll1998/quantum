@@ -162,7 +162,23 @@ Repeating the above for different atomic distances and plotting the result leads
 
 ![H2 Bond Dissociation Curve](./docs/H2_dissociation.png)
 
+### Molecular Geometry Optimization
+
+The bond dissociation curves show a naive approach of finding stable states of bi-atomic molecules, i.e. low energy states. A more sophisticated approach is to directly minimize the energy of the system. One way of duing this is to apply gradient descent to the hartree fock energy. The `GeometryOptimization` class implements exactly that. The following snipped shows the usage of the class (from `examples/geometry.py`):
+
+```python
+optim = GeometryOptimization(step=0.5)
+molecule, Es = optim.optimize(
+    molecule=H1+H2,
+    iterations=50,
+    return_energy_history=True
+)
+```
+
+Visualizing the energy history computed by the gradient descent alogithm gives the plot below.
+
+![H2 Gradient Descent](./docs/H2_geometry.png)
+
 ## Future Work
 
- - implement molecular structual optimization using gradient descent to minimize Hartree Fock energy
  - visualize bohmian trajectories for molecular orbits
