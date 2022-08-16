@@ -301,7 +301,7 @@ class ElectronicTISE(TISE):
         num_occ_orbitals:int =1,
         max_cycles:int =20,
         tol:float =1e-5
-    ) -> Tuple[float, List[MolecularOrbital]]:
+    ) -> Tuple[float, np.ndarray, np.ndarray]:
         """ Implements the restricted hartree-fock method also known as the self-consistent field (SCF) method 
 
             Args:

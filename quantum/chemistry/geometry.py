@@ -5,6 +5,7 @@ from .utils import MMD_E, MMD_R, MMD_dEdx
 from scipy.spatial.distance import pdist, squareform
 from itertools import product
 from copy import deepcopy
+from typing import Union, Tuple, List
 
 class GeometryOptimization(object):
     """ Molecule geometry optimization by minimizaing the Hartree-Fock 
@@ -118,7 +119,7 @@ class GeometryOptimization(object):
         # number of atoms and length of basis
         n_atoms = len(molecule)
         n_basis = len(basis)
-        # overlap derivative matrix
+        # kinetic energy derivative matrix
         dT_dA = np.zeros((n_basis, n_basis, n_atoms, 3))
         
         # compute gradient of overlap of all combinations of atoms
@@ -211,7 +212,7 @@ class GeometryOptimization(object):
         # number of atoms and length of basis
         n_atoms = len(molecule)
         n_basis = len(basis)
-        # overlap derivative matrix
+        # attraction energy derivative matrix
         dV_dA = np.zeros((n_basis, n_basis, n_atoms, 3))
         
         # compute gradient of overlap of all combinations of atoms
@@ -350,7 +351,7 @@ class GeometryOptimization(object):
         self, 
         molecule:Molecule,
         **kwargs
-    ):
+    ) -> Tuple[float, np.ndarray]:
         """ Compute the derivative of the hartree fock energy w.r.t the
             atom origins. See equation (C.12) in 'Modern Quantum Chemistry'
             (1989) by Szabo and Ostlund.
@@ -402,7 +403,7 @@ class GeometryOptimization(object):
         iterations:int,
         return_energy_history:bool =False,
         **kwargs
-    ) -> Molecule:
+    ) -> Union[Molecule, Tuple[Molecule, List[float]]]:
         """ Optimize geometry of given molecule 
 
             Args:
