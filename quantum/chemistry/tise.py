@@ -42,17 +42,16 @@ class ElectronicTISE(TISE):
         n = len(self.basis)
         # create all expansion coefficients instance
         # one for each pair of GTOs
-        self.expan_coeffs = np.asarray([
-            create_expansion_coefficients(
-                A_origin=A.origin,
-                A_alpha=A.alpha,
-                B_origin=B.origin,
-                B_alpha=B.alpha
-            )
-            for A in self.basis
-            for B in self.basis
-        ]).reshape(n, n, 3)
-
+        self.expan_coeffs = np.empty((len(basis), len(basis), 3), dtype=object)
+        for i, A in enumerate(basis):
+            for j, B in enumerate(basis):
+                self.expan_coeffs[i, j, :] = self.expan_coeffs[j, i, :] = create_expansion_coefficients(
+                    A_origin=A.origin,
+                    A_alpha=A.alpha,
+                    B_origin=B.origin,
+                    B_alpha=B.alpha
+                )
+    
     @classmethod
     def from_molecule(cls, molecule:Molecule) -> "ElectronicTISE":
         """ Initialize an electronic schroedinger equation directly from
@@ -184,53 +183,58 @@ class ElectronicTISE(TISE):
     @cached_property
     def V_ee(self) -> np.ndarray:
         """ Electron-Electron Repulsion Tensor """
-        return np.asarray([
-            ElectronElectronRepulsion.compute(
-                # GTO A
-                A_coeff=A.coeff,
-                A_alpha=A.alpha,
-                A_angular=A.angular,
-                A_norm=A.N,
-                # GTO B
-                B_coeff=B.coeff,
-                B_alpha=B.alpha,
-                B_angular=B.angular,
-                B_norm=B.N,
-                # GTO C
-                C_coeff=C.coeff,
-                C_alpha=C.alpha,
-                C_angular=C.angular,
-                C_norm=C.N,
-                # GTO D
-                D_coeff=D.coeff,
-                D_alpha=D.alpha,
-                D_angular=D.angular,
-                D_norm=D.N,
-                # GTO pair AB
-                Ex_AB=self.expan_coeffs[i, j, 0],
-                Ey_AB=self.expan_coeffs[i, j, 1],
-                Ez_AB=self.expan_coeffs[i, j, 2],
-                # GTO pair CD
-                Ex_CD=self.expan_coeffs[k, l, 0],
-                Ey_CD=self.expan_coeffs[k, l, 1],
-                Ez_CD=self.expan_coeffs[k, l, 2],
-                # global
-                R_PP=create_R_PP(
-                    A_origin=A.origin,
-                    A_alpha=A.alpha,
-                    B_origin=B.origin,
-                    B_alpha=B.alpha,
-                    C_origin=C.origin,
-                    C_alpha=C.alpha,
-                    D_origin=D.origin,
-                    D_alpha=D.alpha,
-                )
-            )
-            for i, A in enumerate(self.basis)
-            for j, B in enumerate(self.basis)
-            for k, C in enumerate(self.basis)
-            for l, D in enumerate(self.basis)
-        ]).reshape(len(self.basis), len(self.basis), len(self.basis), len(self.basis))
+        # create empty matrix to hold values
+        V = np.empty((len(self.basis), len(self.basis), len(self.basis), len(self.basis)))
+
+        # compute all values
+        for i, A in enumerate(self.basis):
+            for j, B in enumerate(self.basis):
+                # make use of symmetric property
+                for k, C in enumerate(self.basis):
+                    for l, D in enumerate(self.basis[:k+1]):
+                        V[i, j, k, l] = V[i, j, l, k] = ElectronElectronRepulsion.compute(
+                            # GTO A
+                            A_coeff=A.coeff,
+                            A_alpha=A.alpha,
+                            A_angular=A.angular,
+                            A_norm=A.N,
+                            # GTO B
+                            B_coeff=B.coeff,
+                            B_alpha=B.alpha,
+                            B_angular=B.angular,
+                            B_norm=B.N,
+                            # GTO C
+                            C_coeff=C.coeff,
+                            C_alpha=C.alpha,
+                            C_angular=C.angular,
+                            C_norm=C.N,
+                            # GTO D
+                            D_coeff=D.coeff,
+                            D_alpha=D.alpha,
+                            D_angular=D.angular,
+                            D_norm=D.N,
+                            # GTO pair AB
+                            Ex_AB=self.expan_coeffs[i, j, 0],
+                            Ey_AB=self.expan_coeffs[i, j, 1],
+                            Ez_AB=self.expan_coeffs[i, j, 2],
+                            # GTO pair CD
+                            Ex_CD=self.expan_coeffs[k, l, 0],
+                            Ey_CD=self.expan_coeffs[k, l, 1],
+                            Ez_CD=self.expan_coeffs[k, l, 2],
+                            # global
+                            R_PP=create_R_PP(
+                                A_origin=A.origin,
+                                A_alpha=A.alpha,
+                                B_origin=B.origin,
+                                B_alpha=B.alpha,
+                                C_origin=C.origin,
+                                C_alpha=C.alpha,
+                                D_origin=D.origin,
+                                D_alpha=D.alpha,
+                            )
+                        )
+
+        return V
 
     @cached_property
     def E_nn(self) -> float:
