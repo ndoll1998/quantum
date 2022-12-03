@@ -55,21 +55,21 @@ class ElectronElectronRepulsion(object):
         i1, k1, m1 = A_angular
         j1, l1, n1 = B_angular
         # reshape to allow broadcasting
-        alpha = A_alpha.reshape(-1, 1)
-        beta = B_alpha.reshape(1, -1)
+        alpha = A_alpha[:, None]
+        beta = B_alpha[None, :]
         # compute pairwise products of coefficients and normalizers
-        c1c2 = A_coeff.reshape(-1, 1) * B_coeff.reshape(1, -1)
-        n1n2 = A_norm.reshape(-1, 1) * B_norm.reshape(1, -1)
+        c1c2 = A_coeff[:, None] * B_coeff[None, :]
+        n1n2 = A_norm[:, None] * B_norm[None, :]
         
         # unpack angulars
         i2, k2, m2 = C_angular
         j2, l2, n2 = D_angular
         # reshape to allow broadcasting
-        gamma = C_alpha.reshape(-1, 1)
-        delta = D_alpha.reshape(1, -1)
+        gamma = C_alpha[:, None]
+        delta = D_alpha[None, :]
         # compute pairwise products of coefficients and normalizers
-        c3c4 = C_coeff.reshape(-1, 1) * D_coeff.reshape(1, -1)
-        n3n4 = C_norm.reshape(-1, 1) * D_norm.reshape(1, -1)
+        c3c4 = C_coeff[:, None] * D_coeff[None, :]
+        n3n4 = C_norm[:, None] * D_norm[None, :]
 
         # compute composit exponents
         p1 = (alpha + beta)[:, :, None, None]

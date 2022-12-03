@@ -30,7 +30,7 @@ class ExpansionCoefficients(object):
         self.p = alpha+beta
         self.q = (alpha*beta) / self.p
 
-    @lru_cache(maxsize=128)
+    @lru_cache(maxsize=512)
     def compute(self, i:int, j:int, t:int) -> np.ndarray:
         """ Compute the Hermite Gaussian expansion coefficients by
             Equations (73), (74) and (75) in Helgaker and Taylor.
@@ -64,7 +64,7 @@ class ExpansionCoefficients(object):
                 + self.q * self.Q / self.beta * self.compute(i, j-1, t) \
                 + (t + 1) * self.compute(i, j-1, t+1)
 
-    @lru_cache(maxsize=128)
+    @lru_cache(maxsize=512)
     def deriv(self, i:int, j:int, t:int, n:int) -> np.ndarray:
         """ Compute the derivative of the Hermite Gaussian expansion
             coefficients by Equation (20) in 'On the evaluation of
@@ -144,7 +144,7 @@ class HermiteIntegrals(object):
         self.alpha = alpha
         self.PC = P - C
 
-    @lru_cache(maxsize=128)
+    @lru_cache(maxsize=512)
     def compute(self, t:int, u:int, v:int, n:int) -> np.ndarray:
         """ Compute the coulomd auxiliary hermite intergrals by
             Equations (189), (190), (191) and (192) in Helgaker
@@ -160,7 +160,7 @@ class HermiteIntegrals(object):
                 R (np.ndarray):
                     hermite integral values of same shape as alpha.
         """
- 
+
         if (t < 0) or (u < 0) or (v < 0):
             # trivial case: out of bounds
             return 0.0
@@ -181,3 +181,5 @@ class HermiteIntegrals(object):
         else:
             # decrement index t
             return (t-1) * self.compute(t-2, u, v, n+1) + self.PC[..., 0] * self.compute(t-1, u, v, n+1)
+
+

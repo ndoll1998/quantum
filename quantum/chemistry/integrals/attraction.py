@@ -42,25 +42,26 @@ class ElectronNuclearAttraction(object):
         i, k, m = A_angular
         j, l, n = B_angular
         # reshape to allow broadcasting
-        alpha = A_alpha.reshape(-1, 1, 1)
-        beta = B_alpha.reshape(1, -1, 1)
+        alpha = A_alpha[:, None, None]
+        beta = B_alpha[None, :, None]
         # compute pairwise products of coefficients and normalizers
-        c1c2 = A_coeff.reshape(-1, 1, 1) * B_coeff.reshape(1, -1, 1)
-        n1n2 = A_norm.reshape(-1, 1, 1) * B_norm.reshape(1, -1, 1)
+        c1c2 = A_coeff[:, None, None] * B_coeff[None, :, None]
+        n1n2 = A_norm[:, None, None] * B_norm[None, :, None]
 
         # compute
         return np.sum(
             2.0 * np.pi / (alpha + beta) * c1c2 * n1n2 * \
             -Z * sum((
-                Ex.compute(i, j, t)[:, :, None] * \
-                Ey.compute(k, l, u)[:, :, None] * \
-                Ez.compute(m, n, v)[:, :, None] * \
-                R_PC.compute(t, u, v, 0)
+                (
+                    Ex.compute(i, j, t) * \
+                    Ey.compute(k, l, u) * \
+                    Ez.compute(m, n, v)
+                )[:, :, None] * R_PC.compute(t, u, v, 0)
                 for t, u, v in product(range(i+j+1), range(k+l+1), range(m+n+1))
             ))
         )
 
-    @classmethod
+    @staticmethod
     def gradient(
         Z:np.ndarray,
         A_coeff:np.ndarray,
@@ -81,11 +82,11 @@ class ElectronNuclearAttraction(object):
         i, k, m = A_angular
         j, l, n = B_angular
         # reshape to allow broadcasting
-        alpha = A_alpha.reshape(-1, 1)
-        beta = B_alpha.reshape(1, -1)
+        alpha = A_alpha[:, None, None]
+        beta = B_alpha[None, :, None]
         # compute pairwise products of coefficients and normalizers
-        c1c2 = A_coeff.reshape(-1, 1) * B_coeff.reshape(1, -1)
-        n1n2 = A_norm.reshape(-1, 1) * B_norm.reshape(1, -1)
+        c1c2 = A_coeff[:, None, None] * B_coeff[None, :, None]
+        n1n2 = A_norm[:, None, None] * B_norm[None, :, None]
 
         # compute all expansion coefficients
         E = (
@@ -102,14 +103,14 @@ class ElectronNuclearAttraction(object):
         
         # reshape to compute outer products by broadcasting
         E = (
-            E[0][:, None, None, ...],
-            E[1][None, :, None, ...],
-            E[2][None, None, :, ...],
+            E[0][:, None, None, ..., None],
+            E[1][None, :, None, ..., None],
+            E[2][None, None, :, ..., None],
         )
         E_dx = (
-            E_dx[0][:, None, None, ...],
-            E_dx[1][None, :, None, ...],
-            E_dx[2][None, None, :, ...],
+            E_dx[0][:, None, None, ..., None],
+            E_dx[1][None, :, None, ..., None],
+            E_dx[2][None, None, :, ..., None],
         )
         
         # compute all auxiliary hermite integras
@@ -117,7 +118,7 @@ class ElectronNuclearAttraction(object):
                 R_PC.compute(t, u, v, 0)
                 for t, u, v in product(range(i+j+2), range(k+l+2), range(m+n+2))
         ], axis=0)
-        R = R.reshape(i+j+2, k+l+2, m+n+2, alpha.shape[0], beta.shape[1], C.shape[0])
+        R = R.reshape(i+j+2, k+l+2, m+n+2, alpha.shape[0], beta.shape[1], -1)
         
         # get the derivatives from the hermite integrals
         R_dx = R[1:, :-1, :-1, ...]

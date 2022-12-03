@@ -36,10 +36,10 @@ class Overlap(object):
         i, k, m = A_angular
         j, l, n = B_angular
         # compute pairwise sum of exponents
-        a1a2 = A_alpha.reshape(-1, 1) + B_alpha.reshape(1, -1)
+        a1a2 = A_alpha[:, None] + B_alpha[None, :]
         # compute pairwise products of coefficients and normalizers
-        c1c2 = A_coeff.reshape(-1, 1) * B_coeff.reshape(1, -1)
-        n1n2 = A_norm.reshape(-1, 1) * B_norm.reshape(1, -1)
+        c1c2 = A_coeff[:, None] * B_coeff[None, :]
+        n1n2 = A_norm[:, None] * B_norm[None, :]
 
         return (
             # compute overlap over each pair of gaussian
@@ -73,10 +73,10 @@ class Overlap(object):
         i, k, m = A_angular
         j, l, n = B_angular
         # compute pairwise sum of exponents
-        a1a2 = A_alpha.reshape(-1, 1) + B_alpha.reshape(1, -1)
+        a1a2 = A_alpha[:, None] + B_alpha[None, :]
         # compute pairwise products of coefficients and normalizers
-        c1c2 = A_coeff.reshape(-1, 1) * B_coeff.reshape(1, -1)
-        n1n2 = A_norm.reshape(-1, 1) * B_norm.reshape(1, -1)
+        c1c2 = A_coeff[:, None] * B_coeff[None, :]
+        n1n2 = A_norm[:, None] * B_norm[None, :]
         
         # compute all expansion coefficients
         E = (

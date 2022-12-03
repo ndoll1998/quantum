@@ -102,8 +102,8 @@ def create_R_PP(
     P_ab = (alpha * A_origin + beta * B_origin) / (alpha + beta)
     P_cd = (gamma * C_origin + delta * D_origin) / (gamma + delta)
     # compute composite exponents
-    p1 = (alpha + beta)[:, :, None, None, 0]
-    p2 = (gamma + delta)[None, None, :, :, 0]
+    p1 = A_alpha[:, None, None, None] + B_alpha[None, :, None, None]
+    p2 = C_alpha[None, None, :, None] + D_alpha[None, None, None, :]
 
     # create hermite integral instance
     return HermiteIntegrals(

@@ -32,11 +32,11 @@ class Kinetic(object):
         i, k, m = A_angular
         j, l, n = B_angular
         # reshape to allow broadcasting
-        alpha = A_alpha.reshape(-1, 1)
-        beta = B_alpha.reshape(1, -1)
+        alpha = A_alpha[:, None]
+        beta = B_alpha[None, :]
         # compute pairwise products of coefficients and normalizers
-        c1c2 = A_coeff.reshape(-1, 1) * B_coeff.reshape(1, -1)
-        n1n2 = A_norm.reshape(-1, 1) * B_norm.reshape(1, -1)
+        c1c2 = A_coeff[:, None] * B_coeff[None, :]
+        n1n2 = A_norm[:, None] * B_norm[None, :]
    
         # compute directional overlaps - actually only the expansion
         # coefficients, sqrt(pi/p) is factored out of the equation
@@ -81,11 +81,11 @@ class Kinetic(object):
         i, k, m = A_angular
         j, l, n = B_angular
         # reshape to allow broadcasting
-        alpha = A_alpha.reshape(-1, 1)
-        beta = B_alpha.reshape(1, -1)
+        alpha = A_alpha[:, None]
+        beta = B_alpha[None, :]
         # compute pairwise products of coefficients and normalizers
-        c1c2 = A_coeff.reshape(-1, 1) * B_coeff.reshape(1, -1)
-        n1n2 = A_norm.reshape(-1, 1) * B_norm.reshape(1, -1)
+        c1c2 = A_coeff[:, None] * B_coeff[None, :]
+        n1n2 = A_norm[:, None] * B_norm[None, :]
         
         # compute directional overlaps - actually only the expansion
         # coefficients, sqrt(pi/p) is factored out of the equation
