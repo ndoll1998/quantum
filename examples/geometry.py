@@ -18,16 +18,12 @@ def geometry_optimization():
     # some random initial position
     H2.origin = [3, -1, 4]
 
+    optim = quantum.chemistry.GradientDescentGeometryOptimizer(
+        mol=H1+H2,
+        alpha=0.4
+    )
     # optimize molecular geometry
-    optim = quantum.chemistry.GeometryOptimization(
-        step=0.4,
-        tol=-1
-    )
-    molecule, Es = optim.optimize(
-        molecule=H1+H2,
-        iterations=50,
-        return_energy_history=True
-    )
+    Es = optim.optimize(max_iters=50, tol=-1)
 
     # create figure for plots
     fig = plt.figure(figsize=(8, 4), tight_layout=True)
@@ -42,11 +38,11 @@ def geometry_optimization():
     )
     
     # plot atom origins and bonds
-    C = molecule.origins
+    C = optim.molecule.origins
     ax = fig.add_subplot(1, 2, 2, projection='3d')
     ax.scatter(C[:, 0], C[:, 1], C[:, 2], color='blue')
     # bonds between all atoms
-    for i, j in combinations(range(len(molecule)), 2):
+    for i, j in combinations(range(len(optim.molecule)), 2):
         ax.plot(C[(i, j), 0], C[(i, j), 1], C[(i, j), 2], color='blue')
     ax.set(title="Molecular Geometry")
 
