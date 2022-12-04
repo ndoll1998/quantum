@@ -42,16 +42,17 @@ class ElectronicTISE(TISE):
         n = len(self.basis)
         # create all expansion coefficients instance
         # one for each pair of GTOs
-        self.expan_coeffs = np.empty((len(basis), len(basis), 3), dtype=object)
-        for i, A in enumerate(basis):
-            for j, B in enumerate(basis):
-                self.expan_coeffs[i, j, :] = self.expan_coeffs[j, i, :] = create_expansion_coefficients(
-                    A_origin=A.origin,
-                    A_alpha=A.alpha,
-                    B_origin=B.origin,
-                    B_alpha=B.alpha
-                )
-    
+        self.expan_coeffs = np.asarray([
+            create_expansion_coefficients(
+                A_origin=A.origin,
+                A_alpha=A.alpha,
+                B_origin=B.origin,
+                B_alpha=B.alpha
+            )
+            for A in basis
+            for B in basis
+        ]).reshape((len(basis), len(basis), 3))
+
     @classmethod
     def from_molecule(cls, molecule:Molecule) -> "ElectronicTISE":
         """ Initialize an electronic schroedinger equation directly from
@@ -107,6 +108,36 @@ class ElectronicTISE(TISE):
         return S
 
     @cached_property
+    def S_grad(self) -> np.ndarray:
+        
+        # create empty matrix to hold values
+        S_grad = np.zeros((len(self.basis), len(self.basis), 3))
+
+        # compute all values
+        # make use of symmetric property of one-electron integrals
+        for i, A in enumerate(self.basis):
+            for j, B in enumerate(self.basis[:i+1]):
+                S_grad[i, j, :], S_grad[j, i, :] = Overlap.gradient(
+                    # GTO A
+                    A_coeff=A.coeff,
+                    A_alpha=A.alpha,
+                    A_angular=A.angular,
+                    A_norm=A.N,
+                    # GTO B
+                    B_coeff=B.coeff,
+                    B_alpha=B.alpha,
+                    B_angular=B.angular,
+                    B_norm=B.N,
+                    # GTO pair AB
+                    Ex=self.expan_coeffs[i, j, 0],
+                    Ey=self.expan_coeffs[i, j, 1],
+                    Ez=self.expan_coeffs[i, j, 2]
+                )
+
+        # return overlap matrix
+        return S_grad
+
+    @cached_property
     def T(self) -> np.ndarray:
         """ Kinetic Energy Matrix 
 
@@ -140,6 +171,35 @@ class ElectronicTISE(TISE):
 
         # return overlap matrix
         return T
+    
+    @cached_property
+    def T_grad(self) -> np.ndarray:
+        # create empty matrix to hold values
+        T_grad = np.empty((len(self.basis), len(self.basis), 3))
+
+        # compute all values
+        # make use of symmetric property of one-electron integrals
+        for i, A in enumerate(self.basis):
+            for j, B in enumerate(self.basis[:i+1]):
+                T_grad[i, j, :], T_grad[j, i, :] = Kinetic.gradient(
+                    # GTO A
+                    A_coeff=A.coeff,
+                    A_alpha=A.alpha,
+                    A_angular=A.angular,
+                    A_norm=A.N,
+                    # GTO B
+                    B_coeff=B.coeff,
+                    B_alpha=B.alpha,
+                    B_angular=B.angular,
+                    B_norm=B.N,
+                    # GTO pair AB
+                    Ex=self.expan_coeffs[i, j, 0],
+                    Ey=self.expan_coeffs[i, j, 1],
+                    Ez=self.expan_coeffs[i, j, 2]
+                )
+
+        # return overlap matrix
+        return T_grad
 
     @cached_property
     def V_en(self) -> np.ndarray:
@@ -179,6 +239,45 @@ class ElectronicTISE(TISE):
 
         # return overlap matrix
         return V
+    
+    @cached_property
+    def V_en_grad(self) -> np.ndarray:
+        """ Electron-Nuclear Attraction Matrix """
+        # create empty matrix to hold values
+        V_grad = np.empty((len(self.basis), len(self.basis), 3))
+
+        # compute all values
+        # make use of symmetric property of one-electron integrals
+        for i, A in enumerate(self.basis):
+            for j, B in enumerate(self.basis[:i+1]):
+                V_grad[i, j, :], V_grad[j, i, :] = ElectronNuclearAttraction.gradient(
+                    Z=self.Z,
+                    # GTO A
+                    A_coeff=A.coeff,
+                    A_alpha=A.alpha,
+                    A_angular=A.angular,
+                    A_norm=A.N,
+                    # GTO B
+                    B_coeff=B.coeff,
+                    B_alpha=B.alpha,
+                    B_angular=B.angular,
+                    B_norm=B.N,
+                    # GTO pair AB
+                    Ex=self.expan_coeffs[i, j, 0],
+                    Ey=self.expan_coeffs[i, j, 1],
+                    Ez=self.expan_coeffs[i, j, 2],
+                    # global
+                    R_PC=create_R_PC(
+                        C=self.C,
+                        A_origin=A.origin,
+                        A_alpha=A.alpha,
+                        B_origin=B.origin,
+                        B_alpha=B.alpha
+                    )
+                )
+
+        # return overlap matrix
+        return V_grad
     
     @cached_property
     def V_ee(self) -> np.ndarray:
@@ -237,6 +336,11 @@ class ElectronicTISE(TISE):
         return V
 
     @cached_property
+    def V_ee_grad(self) -> np.ndarray:
+        """ Electron-Electron Repulsion Tensor """
+        return np.zeros((len(self.basis), len(self.basis), len(self.basis), len(self.basis), 3))
+    
+    @cached_property
     def E_nn(self) -> float:
         """ compute the nuclear-nuclear repulsion energy
 
@@ -254,7 +358,35 @@ class ElectronicTISE(TISE):
         np.fill_diagonal(ZZ, 0)
         # compute repulsion
         return 0.5 * np.sum(ZZ / R)
- 
+    
+    def E_nn_grad(self, molecule:Molecule) -> np.ndarray:
+        """ Compute the gradient of nuclear-nuclear repulsion energy
+            w.r.t. the atom origins of the given molecule.
+            
+            Args:
+                molecule (Molecule): molecule for which to compute the gradient
+        
+            Returns:
+                E_nn_grad (np.ndarray): 
+                    the repulsion energy derivative matrix of shape (n, 3) where
+                    n the number of atoms.
+        """
+        
+
+        Z = molecule.Zs
+        C = molecule.origins
+        # compute pairwise distances between nuclei
+        # and set diagonal to one to avoid divison by zero
+        R = pdist(C, metric='euclidean')
+        R = squareform(R)
+        np.fill_diagonal(R, 1.0)
+        # compute gradient
+        return Z[:, None] * np.sum(
+            Z[None, :, None] * (C[None, :, :] - C[:, None, :]) / \
+            (R[:, :, None] ** 3),
+            axis=1
+        )
+    
     def restricted_hartree_fock(
         self,
         num_occ_orbitals:int =1,

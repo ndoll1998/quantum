@@ -68,6 +68,10 @@ class Overlap(object):
         Ey:ExpansionCoefficients,
         Ez:ExpansionCoefficients
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """ Compute the gradient of the overlap matrix as proposed
+            in 'On the evaluation of derivatives of Gaussian integrals'
+            (1992) by Helgaker and Taylor.
+        """
         
         # unpack angulars
         i, k, m = A_angular

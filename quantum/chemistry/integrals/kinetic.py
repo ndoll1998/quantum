@@ -91,8 +91,8 @@ class Kinetic(object):
         # coefficients, sqrt(pi/p) is factored out of the equation
         # and added to the final expression
         Sx = Ex.compute(i, j, 0)
-        Sy = Ex.compute(k, l, 0)
-        Sz = Ex.compute(m, n, 0)
+        Sy = Ey.compute(k, l, 0)
+        Sz = Ez.compute(m, n, 0)
 
         # compute kinetic terms in each direction, similarly to the
         # overlaps only using the expansion coefficients here
@@ -102,9 +102,9 @@ class Kinetic(object):
         Ty = l * (l - 1) * Ey.compute(k, l-2, 0) - \
             2.0 * beta * (2.0 * l + 1.0) * Sy + \
             4.0 * beta**2 * Ey.compute(k, l+2, 0)
-        Tz = n * (n - 1) * Ez(m, n-2, 0) - \
+        Tz = n * (n - 1) * Ez.compute(m, n-2, 0) - \
             2.0 * beta * (2.0 * n + 1.0) * Sz + \
-            4.0 * beta**2 * Ez(m, n+2, 0)
+            4.0 * beta**2 * Ez.compute(m, n+2, 0)
         
         # compute all directional overlap derivatives
         Sx_dx = Ex.deriv(i, j, 0, 1)
@@ -128,6 +128,7 @@ class Kinetic(object):
             (Tx * Sy_dy * Sz + Sx * Ty_dy * Sz + Sx * Sy_dy * Tz),
             (Tx * Sy * Sz_dz + Sx * Ty * Sz_dz + Sx * Sy * Tz_dz)
         ), axis=0)
+        
         # scale and multiply with integral of hermitian 
         dT_dAx = c1c2 * n1n2 * dT_dAx * (np.pi / (alpha + beta)) ** 1.5
         dT_dAx = -0.5 * np.sum(dT_dAx, axis=(1, 2))

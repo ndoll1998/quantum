@@ -27,8 +27,11 @@ class ExpansionCoefficients(object):
         self.alpha = alpha
         self.beta = beta
         self.Q = A - B
-        self.p = alpha+beta
-        self.q = (alpha*beta) / self.p
+        self.p = (alpha + beta)
+        self.q = (alpha * beta) / self.p
+
+        self.A = A
+        self.B = B
 
     @lru_cache(maxsize=512)
     def compute(self, i:int, j:int, t:int) -> np.ndarray:

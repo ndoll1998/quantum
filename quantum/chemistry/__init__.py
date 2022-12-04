@@ -1,4 +1,4 @@
 from .orbital import GaussianOrbital, MolecularOrbital
 from .structs import Atom, Molecule
 from .tise import ElectronicTISE
-from .geometry import GeometryOptimization
+from .optimizers import GradientDescentGeometryOptimizer
