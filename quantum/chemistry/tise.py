@@ -40,8 +40,8 @@ class ElectronicTISE(TISE):
         self.Z = Z        
 
         n = len(self.basis)
+        
         # create all expansion coefficients instance
-        # one for each pair of GTOs
         self.expan_coeffs = np.asarray([
             create_expansion_coefficients(
                 A_origin=A.origin,
@@ -52,6 +52,37 @@ class ElectronicTISE(TISE):
             for A in basis
             for B in basis
         ]).reshape((len(basis), len(basis), 3))
+
+        # create all hermite integral instances
+        # for electron-nuclear attraction
+        self.R_PC = np.asarray([
+            create_R_PC(
+                C=self.C,
+                A_origin=A.origin,
+                A_alpha=A.alpha,
+                B_origin=B.origin,
+                B_alpha=B.alpha
+            )
+            for A in basis
+            for B in basis
+        ]).reshape((len(basis), len(basis)))
+            
+        self.R_PP = np.asarray([                
+            create_R_PP(
+                A_origin=A.origin,
+                A_alpha=A.alpha,
+                B_origin=B.origin,
+                B_alpha=B.alpha,
+                C_origin=C.origin,
+                C_alpha=C.alpha,
+                D_origin=D.origin,
+                D_alpha=D.alpha,
+            )
+            for A in basis
+            for B in basis
+            for C in basis
+            for D in basis
+        ]).reshape(len(basis), len(basis), len(basis), len(basis))
 
     @classmethod
     def from_molecule(cls, molecule:Molecule) -> "ElectronicTISE":
@@ -219,13 +250,7 @@ class ElectronicTISE(TISE):
                     Ey=self.expan_coeffs[i, j, 1],
                     Ez=self.expan_coeffs[i, j, 2],
                     # global
-                    R_PC=create_R_PC(
-                        C=self.C,
-                        A_origin=A.origin,
-                        A_alpha=A.alpha,
-                        B_origin=B.origin,
-                        B_alpha=B.alpha
-                    )
+                    R_PC=self.R_PC[i, j]
                 )
 
         # return overlap matrix
@@ -258,13 +283,7 @@ class ElectronicTISE(TISE):
                     Ey=self.expan_coeffs[i, j, 1],
                     Ez=self.expan_coeffs[i, j, 2],
                     # global
-                    R_PC=create_R_PC(
-                        C=self.C,
-                        A_origin=A.origin,
-                        A_alpha=A.alpha,
-                        B_origin=B.origin,
-                        B_alpha=B.alpha
-                    )
+                    R_PC=self.R_PC[i, j]
                 )
 
         # return overlap matrix
@@ -312,16 +331,7 @@ class ElectronicTISE(TISE):
                             Ey_CD=self.expan_coeffs[k, l, 1],
                             Ez_CD=self.expan_coeffs[k, l, 2],
                             # global
-                            R_PP=create_R_PP(
-                                A_origin=A.origin,
-                                A_alpha=A.alpha,
-                                B_origin=B.origin,
-                                B_alpha=B.alpha,
-                                C_origin=C.origin,
-                                C_alpha=C.alpha,
-                                D_origin=D.origin,
-                                D_alpha=D.alpha,
-                            )
+                            R_PP=self.R_PP[i, j, k, l]
                         )
 
         return V
