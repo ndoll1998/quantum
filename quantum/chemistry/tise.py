@@ -72,13 +72,7 @@ class ElectronicTISE(TISE):
 
     @cached_property
     def S(self) -> np.ndarray:
-        """ Overlap Matrix
-            
-            Returns:
-                S (np.ndarray): 
-                    the overlap matrix of shape (m, m) where m is the number of orbitals in the basis.
-                    S_ij refers to the overlap value of the orbitals with index i and j in the basis.
-        """
+        """ Overlap Matrix """
 
         # create empty matrix to hold values
         S = np.empty((len(self.basis), len(self.basis)))
@@ -109,6 +103,7 @@ class ElectronicTISE(TISE):
 
     @cached_property
     def S_grad(self) -> np.ndarray:
+        """ Gradient of the Overlap Matrix """
         
         # create empty matrix to hold values
         S_grad = np.zeros((len(self.basis), len(self.basis), 3))
@@ -139,12 +134,7 @@ class ElectronicTISE(TISE):
 
     @cached_property
     def T(self) -> np.ndarray:
-        """ Kinetic Energy Matrix 
-
-            Returns:
-                T (np.ndarray): 
-                    the kintec energy matrix of shape (m, m) where m is the number of orbitals in the basis.
-        """
+        """ Kinetic Energy Matrix """
         # create empty matrix to hold values
         T = np.empty((len(self.basis), len(self.basis)))
 
@@ -174,6 +164,7 @@ class ElectronicTISE(TISE):
     
     @cached_property
     def T_grad(self) -> np.ndarray:
+        """ Gradient of the Kinetic Energy Matrix """
         # create empty matrix to hold values
         T_grad = np.empty((len(self.basis), len(self.basis), 3))
 
@@ -242,7 +233,7 @@ class ElectronicTISE(TISE):
     
     @cached_property
     def V_en_grad(self) -> np.ndarray:
-        """ Electron-Nuclear Attraction Matrix """
+        """ Gradient of the Electron-Nuclear Attraction Matrix """
         # create empty matrix to hold values
         V_grad = np.empty((len(self.basis), len(self.basis), 3))
 
@@ -337,16 +328,13 @@ class ElectronicTISE(TISE):
 
     @cached_property
     def V_ee_grad(self) -> np.ndarray:
-        """ Electron-Electron Repulsion Tensor """
+        """ Gradient of the Electron-Electron Repulsion Tensor """
+        # TODO: not implemented!
         return np.zeros((len(self.basis), len(self.basis), len(self.basis), len(self.basis), 3))
     
     @cached_property
     def E_nn(self) -> float:
-        """ compute the nuclear-nuclear repulsion energy
-
-            Returns:
-                E_nn (float): the repulsion energy value
-        """
+        """ Nuclear-Nuclear Repulsion Energy """
         # compute pairwise distances between nuclei
         # and set diagonal to one to avoid divison by zero
         R = pdist(self.C, metric='euclidean')

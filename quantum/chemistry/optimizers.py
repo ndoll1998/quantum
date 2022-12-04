@@ -7,7 +7,12 @@ from abc import ABC, abstractmethod
 from typing import Optional, List
 
 class GeometryOptimizer(ABC):
-    """
+    """ Abstract Geometry Optimizer
+
+        Geometry Optimizers aim to find a low-energy state of a molecule
+        by minimize the hartree-fock energy w.r.t atom positions within
+        the molecule.
+
         Args:
             mol (Molecule): Molecule instance to optimize
             num_occ_orbitals (int): 
@@ -44,16 +49,20 @@ class GeometryOptimizer(ABC):
             C=None,
             F=None
         )
-
         # set initial state from copy of given molecule
         # just to make sure the original is kept untouched
         self.update_state(deepcopy(mol))
 
     @property
     def molecule(self) -> Molecule:
+        """ Current molecule """
         return self.state.mol
 
     def update_state(self, mol:Molecule):
+        """ Update internal state w.r.t a given molecule. 
+            Note that this is quiet expensive as the state update
+            requires the computation of the hartree-fock energy.
+        """
         # update molecule and tise
         self.state.mol = mol
         self.state.tise = ElectronicTISE.from_molecule(mol)
@@ -63,16 +72,30 @@ class GeometryOptimizer(ABC):
 
     @abstractmethod
     def step(self, mol:Molecule) -> Molecule:
-        """ Perform a single optimization step """
+        """ (abstract) Perform a single optimization step. 
+            Overwrite to implement custom geometry optimization logic.
+            
+            Args:
+                mol (Molecule): the original molecule to update
+            
+            Returns:
+                mol (Molecule): the updated molecule
+        """
         raise NotImplementedError()
 
     def optimize(self, max_iters:int, tol:float =1e-5) -> List[float]:
         """ Optimize the molecule geometry until some convergence criteria is met.
             
             Args:
+                max_iters (int):
+                    maximum number of update steps to perform
                 tol (float): 
                     tolerance value used to detect convergence based on
                     hartree-fock energy of molecule state. Defaults to 1e-5.
+
+            Returns:
+                history (List[float]):
+                    history of hartree-fock energies
         """
 
         history = [self.state.E]
@@ -92,7 +115,8 @@ class GeometryOptimizer(ABC):
         return history
 
 class GradientDescentGeometryOptimizer(GeometryOptimizer):
-    """
+    """ First-order Gradient Descent Geometry Optimizer
+
         Args:
             mol (Molecule): Molecule instance to optimize
             num_occ_orbitals (int): 
@@ -125,11 +149,16 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
         # save step size
         self.alpha = alpha    
 
-
     def compute_origin_gradients(self) -> np.ndarray:
         """ Compute the gradient of the Hartree-Fock energy w.r.t. the
             atom origins of the current molecule. See Equation (C.12) in
             'Modern Quantum Chemistry' (1989) by Szabo and Ostlund.
+
+            Returns:
+                origin_grads (np.ndarray):
+                    gradients of the atom origins in the shape (n, 3)
+                    where n is the number of atoms and 3 corresponds to
+                    the spacial dimensions in the cartesian coordinate system.
         """
         # compute density matrix and scaled density matrix
         # based on hf solution in state
@@ -159,6 +188,15 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
         ]) * 2.0
     
     def step(self, mol:Molecule) -> Molecule:
+        """ Implements a single gradient descent step.
+            Atom origins are updated inplace.
+
+            Args:
+                mol (Molecule): the original molecule to update
+            
+            Returns:
+                mol (Molecule): the updated molecule
+        """
         # compute new origins
         grads = self.compute_origin_gradients()
         origins = mol.origins - self.alpha * grads
