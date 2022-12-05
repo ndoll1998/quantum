@@ -90,3 +90,75 @@ class TestKinetic(object):
         # compare
         assert np.allclose(dT_dA, dT_dA_ft, atol=eps)
         assert np.allclose(dT_dB, -dT_dA)
+    
+    @pytest.mark.parametrize('num_runs', range(10))
+    @pytest.mark.parametrize('i', range(0, 2))
+    @pytest.mark.parametrize('j', range(0, 2))
+    @pytest.mark.parametrize('m', range(0, 2))
+    @pytest.mark.parametrize('k', range(0, 2))
+    @pytest.mark.parametrize('l', range(0, 2))
+    @pytest.mark.parametrize('n', range(0, 2))
+    def test_symmetry(self, num_runs, i, j, m, k, l, n):
+
+        # create some random values for the two GTOs
+        A_origin = np.random.uniform(-1, 1, size=3)
+        B_origin = np.random.uniform(-1, 1, size=3)
+        A_alpha = np.random.uniform(0.01, 0.5, size=2)
+        B_alpha = np.random.uniform(0.01, 0.5, size=2)
+        A_coeff = np.random.uniform(-0.5, 0.5, size=2)
+        B_coeff = np.random.uniform(-0.5, 0.5, size=2)
+        
+        # create expansion coefficients
+        Ex, Ey, Ez = create_expansion_coefficients(
+            A_alpha=A_alpha,
+            A_origin=A_origin,
+            B_alpha=B_alpha,
+            B_origin=B_origin
+        )
+        # compute
+        T_AB = Kinetic.compute(
+            # GTO A
+            A_alpha=A_alpha,
+            A_coeff=A_coeff,
+            A_angular=(i, j, m),
+            A_norm=np.ones(1),
+            # GTO B
+            B_alpha=B_alpha,
+            B_coeff=B_coeff,
+            B_angular=(k, l, n),
+            B_norm=np.ones(1),
+            # GTO pair AB
+            Ex=Ex, 
+            Ey=Ey, 
+            Ez=Ez
+        )
+        
+        # swap GTOs A and B to test symmetry
+
+        # create expansion coefficients
+        Ex, Ey, Ez = create_expansion_coefficients(
+            A_alpha=B_alpha,
+            A_origin=B_origin,
+            B_alpha=A_alpha,
+            B_origin=A_origin
+        )
+        # compute
+        T_BA = Kinetic.compute(
+            # GTO A
+            A_alpha=B_alpha,
+            A_coeff=B_coeff,
+            A_angular=(k, l, n),
+            A_norm=np.ones(1),
+            # GTO B
+            B_alpha=A_alpha,
+            B_coeff=A_coeff,
+            B_angular=(i, j, m),
+            B_norm=np.ones(1),
+            # GTO pair AB
+            Ex=Ex, 
+            Ey=Ey, 
+            Ez=Ez
+        )
+
+        # compare
+        assert np.allclose(T_AB, T_BA)
