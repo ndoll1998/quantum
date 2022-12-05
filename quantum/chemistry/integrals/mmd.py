@@ -13,25 +13,21 @@ class ExpansionCoefficients(object):
             beta (np.ndarray): 
                 exponents of the gaussian b. Shape must be broadcastable
                 with alpha.
-            A (float): origin of gaussian a
-            B (float): origin of gaussian b
+            Q (float):
+                vector pointing from origin of gaussian a to origin of gaussian b.
     """
 
     def __init__(
         self,
         alpha:np.ndarray,
         beta:np.ndarray,
-        A:float,
-        B:float
+        Q:float
     ) -> None:
         self.alpha = alpha
         self.beta = beta
-        self.Q = A - B
+        self.Q = Q
         self.p = (alpha + beta)
         self.q = (alpha * beta) / self.p
-
-        self.A = A
-        self.B = B
 
     @lru_cache(maxsize=512)
     def compute(self, i:int, j:int, t:int) -> np.ndarray:

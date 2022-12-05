@@ -38,9 +38,9 @@ def create_expansion_coefficients(
     beta = B_alpha.reshape(1, -1)
     # create expansion coefficient instances for each dimension
     return (
-        ExpansionCoefficients(alpha, beta, Ax, Bx),
-        ExpansionCoefficients(alpha, beta, Ay, By),
-        ExpansionCoefficients(alpha, beta, Az, Bz)
+        ExpansionCoefficients(alpha, beta, Ax - Bx),
+        ExpansionCoefficients(alpha, beta, Ay - By),
+        ExpansionCoefficients(alpha, beta, Az - Bz)
     )
 
 
