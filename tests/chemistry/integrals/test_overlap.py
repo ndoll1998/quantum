@@ -88,8 +88,8 @@ class TestOverlap(object):
             dS_dA_ft[d] = (S_pos - S_neg) / (2 * eps)
         
         # compare
-        assert np.allclose(dS_dA, dS_dA_ft, atol=eps)
-        assert np.allclose(dS_dB, -dS_dA)
+        np.testing.assert_allclose(dS_dA, dS_dA_ft, atol=eps)
+        np.testing.assert_allclose(dS_dB, -dS_dA)
 
     @pytest.mark.parametrize('num_runs', range(10))
     @pytest.mark.parametrize('i', range(0, 2))
@@ -161,4 +161,4 @@ class TestOverlap(object):
         )
 
         # compare
-        assert np.allclose(S_AB, S_BA)
+        np.testing.assert_allclose(S_AB, S_BA)

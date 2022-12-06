@@ -15,7 +15,7 @@ class TestExpansionCoefficients(object):
     @pytest.mark.parametrize('t', range(0, 3))
     def test_derivative(self, Q, alpha, beta, i, j, t):
         eps=1e-5
-        assert np.allclose(
+        np.testing.assert_allclose(
             # derivative
             ExpansionCoefficients(alpha, beta, Q).deriv(i, j, t, 1),
             # finite difference approximation of derivative

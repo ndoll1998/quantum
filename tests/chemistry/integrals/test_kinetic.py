@@ -88,8 +88,8 @@ class TestKinetic(object):
             dT_dA_ft[d] = (T_pos - T_neg) / (2 * eps)
         
         # compare
-        assert np.allclose(dT_dA, dT_dA_ft, atol=eps)
-        assert np.allclose(dT_dB, -dT_dA)
+        np.testing.assert_allclose(dT_dA, dT_dA_ft, atol=eps)
+        np.testing.assert_allclose(dT_dB, -dT_dA)
     
     @pytest.mark.parametrize('num_runs', range(10))
     @pytest.mark.parametrize('i', range(0, 2))
@@ -161,4 +161,4 @@ class TestKinetic(object):
         )
 
         # compare
-        assert np.allclose(T_AB, T_BA)
+        np.testing.assert_allclose(T_AB, T_BA)

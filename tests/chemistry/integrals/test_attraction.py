@@ -128,7 +128,7 @@ class TestAttraction(object):
             dV_dA_ft[d] = (V_pos - V_neg) / (2 * eps)
         
         # compare
-        assert np.allclose(dV_dA, dV_dA_ft, atol=eps)
+        np.testing.assert_allclose(dV_dA, dV_dA_ft, atol=eps)
         
 
         # finite difference for GTO B
@@ -187,7 +187,7 @@ class TestAttraction(object):
             dV_dB_ft[d] = (V_pos - V_neg) / (2 * eps)
         
         # compare
-        assert np.allclose(dV_dB, dV_dB_ft, atol=eps)
+        np.testing.assert_allclose(dV_dB, dV_dB_ft, atol=eps)
     
     @pytest.mark.parametrize('num_runs', range(10))
     @pytest.mark.parametrize('i', range(0, 2))
@@ -285,4 +285,4 @@ class TestAttraction(object):
         )
 
         # compare
-        assert np.allclose(V_AB, V_BA)
+        np.testing.assert_allclose(V_AB, V_BA)

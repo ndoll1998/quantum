@@ -92,7 +92,7 @@ class TestElectronicTISE(object):
         tise = ElectronicTISE.from_molecule(H1+H2)
         E, _, _ = tise.restricted_hartree_fock()
         # check with expectation
-        assert np.allclose(E, -1.1167592920796137, atol=1e-10)
+        np.testing.assert_allclose(E, -1.1167592920796137, atol=1e-10)
     
     def test_rhf_energy_oxygen(self):
         # build hydrogen and oxygen atoms
@@ -109,7 +109,7 @@ class TestElectronicTISE(object):
         tise = ElectronicTISE.from_molecule(O+H1+H2)
         E, _, _ = tise.restricted_hartree_fock()
         # check with expectation
-        assert np.allclose(E, -74.94207976229343, atol=1e-10)
+        np.testing.assert_allclose(E, -74.94207976229343, atol=1e-10)
     
     def test_rhf_energy_methane(self):
         # build hydrogen and carbon atoms
