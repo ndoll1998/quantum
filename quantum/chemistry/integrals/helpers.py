@@ -69,17 +69,13 @@ def create_R_PC(
     """
 
     # reshape for broadcasting
-    alpha = A_alpha.reshape(-1, 1, 1)
-    beta = B_alpha.reshape(1, -1, 1)
+    alpha = A_alpha[:, None, None, None]
+    beta = B_alpha[None, :, None, None]
     # compute all gaussian composite centers
     # here last dimension is re-used for coordinates
     P = (alpha * A_origin + beta * B_origin) / (alpha + beta)
-    # add dimension for nuclei, note that last dimension of coordinates
-    # is reduced in computations of R and thus the remaining last dimension
-    # refers to the number of nuclei again
-    P = np.expand_dims(P, -2)
     # create hermite integral instance
-    return HermiteIntegrals(alpha + beta, P, C)
+    return HermiteIntegrals((alpha + beta)[..., 0], P, C)
 
 def create_R_PP(
     A_origin:np.ndarray,

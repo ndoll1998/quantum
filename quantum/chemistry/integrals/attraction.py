@@ -41,24 +41,24 @@ class ElectronNuclearAttraction(object):
         # unpack angulars
         i, k, m = A_angular
         j, l, n = B_angular
-        # reshape to allow broadcasting
-        alpha = A_alpha[:, None, None]
-        beta = B_alpha[None, :, None]
         # compute pairwise products of coefficients and normalizers
-        c1c2 = A_coeff[:, None, None] * B_coeff[None, :, None]
-        n1n2 = A_norm[:, None, None] * B_norm[None, :, None]
+        a1a2 = A_alpha[:, None] + B_alpha[None, :]
+        c1c2 = A_coeff[:, None] * B_coeff[None, :]
+        n1n2 = A_norm[:, None] * B_norm[None, :]
 
         # compute
-        return np.sum(
-            2.0 * np.pi / (alpha + beta) * c1c2 * n1n2 * \
-            -Z * sum((
-                (
-                    Ex.compute(i, j, t) * \
-                    Ey.compute(k, l, u) * \
-                    Ez.compute(m, n, v)
-                )[:, :, None] * R_PC.compute(t, u, v, 0)
-                for t, u, v in product(range(i+j+1), range(k+l+1), range(m+n+1))
-            ))
+        return 2.0 * np.pi * np.sum(
+            c1c2 * n1n2 / a1a2 * \
+            np.sum(
+                -Z * sum((
+                    (
+                        Ex.compute(i, j, t) * \
+                        Ey.compute(k, l, u) * \
+                        Ez.compute(m, n, v)
+                    )[:, :, None] * R_PC.compute(t, u, v, 0)
+                    for t, u, v in product(range(i+j+1), range(k+l+1), range(m+n+1))
+                ))
+            , axis=-1)
         )
 
     @staticmethod
