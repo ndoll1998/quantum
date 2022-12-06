@@ -31,7 +31,7 @@ class ElectronicTISE(TISE):
     def __init__(self, 
         basis:List[GaussianOrbital],
         C:np.ndarray,
-        Z:np.ndarray
+        Z:np.ndarray,
     ) -> None:
         # save basis
         self.basis = basis
@@ -40,7 +40,6 @@ class ElectronicTISE(TISE):
         self.Z = Z        
 
         n = len(self.basis)
-        
         # create all expansion coefficients instance
         self.expan_coeffs = np.asarray([
             create_expansion_coefficients(
@@ -297,43 +296,52 @@ class ElectronicTISE(TISE):
 
         # compute all values
         for i, A in enumerate(self.basis):
-            for j, B in enumerate(self.basis):
-                # make use of symmetric property
+            for j, B in enumerate(self.basis[:i+1]):
                 for k, C in enumerate(self.basis):
                     for l, D in enumerate(self.basis[:k+1]):
-                        V[i, j, k, l] = V[i, j, l, k] = ElectronElectronRepulsion.compute(
-                            # GTO A
-                            A_coeff=A.coeff,
-                            A_alpha=A.alpha,
-                            A_angular=A.angular,
-                            A_norm=A.N,
-                            # GTO B
-                            B_coeff=B.coeff,
-                            B_alpha=B.alpha,
-                            B_angular=B.angular,
-                            B_norm=B.N,
-                            # GTO C
-                            C_coeff=C.coeff,
-                            C_alpha=C.alpha,
-                            C_angular=C.angular,
-                            C_norm=C.N,
-                            # GTO D
-                            D_coeff=D.coeff,
-                            D_alpha=D.alpha,
-                            D_angular=D.angular,
-                            D_norm=D.N,
-                            # GTO pair AB
-                            Ex_AB=self.expan_coeffs[i, j, 0],
-                            Ey_AB=self.expan_coeffs[i, j, 1],
-                            Ez_AB=self.expan_coeffs[i, j, 2],
-                            # GTO pair CD
-                            Ex_CD=self.expan_coeffs[k, l, 0],
-                            Ey_CD=self.expan_coeffs[k, l, 1],
-                            Ez_CD=self.expan_coeffs[k, l, 2],
-                            # global
-                            R_PP=self.R_PP[i, j, k, l]
-                        )
-
+                        # make use of full symmetric property
+                        if (i*(i+1)//2 + j) >= ((k*(k+1))//2 + l):
+                            val = ElectronElectronRepulsion.compute(
+                                # GTO A
+                                A_coeff=A.coeff,
+                                A_alpha=A.alpha,
+                                A_angular=A.angular,
+                                A_norm=A.N,
+                                # GTO B
+                                B_coeff=B.coeff,
+                                B_alpha=B.alpha,
+                                B_angular=B.angular,
+                                B_norm=B.N,
+                                # GTO C
+                                C_coeff=C.coeff,
+                                C_alpha=C.alpha,
+                                C_angular=C.angular,
+                                C_norm=C.N,
+                                # GTO D
+                                D_coeff=D.coeff,
+                                D_alpha=D.alpha,
+                                D_angular=D.angular,
+                                D_norm=D.N,
+                                # GTO pair AB
+                                Ex_AB=self.expan_coeffs[i, j, 0],
+                                Ey_AB=self.expan_coeffs[i, j, 1],
+                                Ez_AB=self.expan_coeffs[i, j, 2],
+                                # GTO pair CD
+                                Ex_CD=self.expan_coeffs[k, l, 0],
+                                Ey_CD=self.expan_coeffs[k, l, 1],
+                                Ez_CD=self.expan_coeffs[k, l, 2],
+                                # global
+                                R_PP=self.R_PP[i, j, k, l]
+                            )
+                            # set values
+                            V[i, j, k, l] = val
+                            V[i, j, l, k] = val
+                            V[j, i, k, l] = val
+                            V[j, i, l, k] = val
+                            V[k, l, i, j] = val
+                            V[k, l, j, i] = val
+                            V[l, k, i, j] = val
+                            V[l, k, j, i] = val
         return V
 
     @cached_property
@@ -387,7 +395,7 @@ class ElectronicTISE(TISE):
     
     def restricted_hartree_fock(
         self,
-        num_occ_orbitals:int =1,
+        num_occ_orbitals:int =None,
         max_cycles:int =20,
         tol:float =1e-5
     ) -> Tuple[float, np.ndarray, np.ndarray]:
@@ -396,7 +404,7 @@ class ElectronicTISE(TISE):
             Args:
                 num_occ_orbitals (int): 
                     the number of occupied orbitals, i.e. half the number of electrons in the system.
-                    Defaults to 1.
+                    Defaults to sum(Z)//2 where Z is the list of atom charges.
                 max_cycles (int): the maximum number of SCF cycles to do.
                 tol (float): tolerance value used to detect convergence.
 
@@ -410,6 +418,8 @@ class ElectronicTISE(TISE):
                     basis C (i.e. F is diagonal). In other words these are the eigenvalues of the fock matrix, i.e. the energies of the corresponding molecular orbitals.
         """
 
+        # set default for number of occupied orbitals
+        num_occ_orbitals = num_occ_orbitals or (self.Z.sum() // 2)
         # build core hamiltonian matrix
         H_core = self.T + self.V_en
         # define initial density matrix
@@ -420,7 +430,7 @@ class ElectronicTISE(TISE):
         E_elec_prev = float('inf')
 
         # scf cylcle
-        for _ in range(max_cycles):
+        for i in range(max_cycles):
 
             # compute the two-electron term
             J, K = self.V_ee, self.V_ee.swapaxes(1, 3)
