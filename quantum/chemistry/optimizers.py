@@ -16,8 +16,8 @@ class GeometryOptimizer(ABC):
         Args:
             mol (Molecule): Molecule instance to optimize
             num_occ_orbitals (int): 
-                the number of occupied orbitals, i.e. half the number
-                of electrons in the system. Defaults to 1.
+                the number of occupied orbitals, i.e. half the number of electrons in the system.
+                Defaults to sum(Z)//2 where Z is the list of atom charges.
             rhf_num_cycles (Optional[int]):
                 maximum number of SCF-cycles to run in restricted
                 hartree-fock routine (see `ElectronicTISE.restricted_hartree_fock`)
@@ -28,11 +28,11 @@ class GeometryOptimizer(ABC):
 
     def __init__(self, 
         mol:Molecule, 
-        num_occ_orbitals:int =1,
+        num_occ_orbitals:Optional[int] =None,
         rhf_num_cycles:Optional[int] =None,
         rhf_tol:Optional[float] =None
     ) -> None:
-        self.n_occ = num_occ_orbitals
+        self.n_occ = num_occ_orbitals or (mol.Zs.sum()//2)
         # build hartree-fock keyword arguments
         self.rhf_kwargs = {'num_occ_orbitals': self.n_occ}
         if rhf_num_cycles is not None:
@@ -108,6 +108,7 @@ class GeometryOptimizer(ABC):
             self.update_state(mol=mol)
             # add new energy state to history
             history.append(self.state.E)
+            print(self.state.E)
             # check for convergence
             if abs(self.state.E - prev_E) < tol:
                 break
@@ -120,8 +121,8 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
         Args:
             mol (Molecule): Molecule instance to optimize
             num_occ_orbitals (int): 
-                the number of occupied orbitals, i.e. half the number
-                of electrons in the system. Defaults to 1.
+                the number of occupied orbitals, i.e. half the number of electrons in the system.
+                Defaults to sum(Z)//2 where Z is the list of atom charges.
             alpha (float): step size of gradient descent update. Defaults to 0.1.
             rhf_num_cycles (Optional[int]):
                 maximum number of SCF-cycles to run in restricted
@@ -134,7 +135,7 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
     def __init__(
         self, 
         mol:Molecule,
-        num_occ_orbitals:int =1,
+        num_occ_orbitals:int =None,
         alpha:float =0.1,
         rhf_num_cycles:Optional[int] =None,
         rhf_tol:Optional[float] =None
@@ -167,8 +168,12 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
         P = 2.0 * C_part @ C_part.T.conjugate()
         Q = 2.0 * (C_part * F_part) @ C_part.T.conjugate()
         
+        # get gradient of two-electron integral
+        # TODO: currently always evaluates to zero anyway
+        # (see `test_repulsion_gradient_water` in tests.chemistry.test_tise.py)
+        V_ee_grad = np.zeros((len(self.state.tise.basis),)*4 + (3,)) 
         # compute gradient of G
-        J_grad, K_grad = self.state.tise.V_ee_grad, self.state.tise.V_ee_grad.swapaxes(1, 3)
+        J_grad, K_grad = V_ee_grad, V_ee_grad.swapaxes(1, 3)
         G_grad = np.sum(P[None, None, :, :, None] * (J_grad - 0.5 * K_grad), axis=(2, 3))        
         # compute gradient on basis-level
         dEdx = (
