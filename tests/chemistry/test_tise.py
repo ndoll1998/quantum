@@ -1,7 +1,9 @@
+import pytest
 import numpy as np
 from quantum.chemistry.structs import Atom
 from quantum.chemistry.orbital import GaussianOrbital
 from quantum.chemistry.tise import ElectronicTISE
+from copy import deepcopy
 
 # STO-3G basis for hydrogen atom
 H_basis = [
@@ -79,7 +81,7 @@ C_basis = [
     )
 ]
 
-class TestElectronicTISE(object):
+class TestRhfEnergy(object):
 
     def test_rhf_energy_hydrogen(self):
         # create hydrogen atoms
@@ -130,3 +132,167 @@ class TestElectronicTISE(object):
         E, _, _ = tise.restricted_hartree_fock()
         # check with expectation
         np.testing.assert_allclose(E, -39.726851323525985, atol=1e-10)
+
+class TestIntegralGradients(object):
+    
+    def random_water(self):
+        # create atoms
+        H1 = Atom(H_basis, Z=1)
+        H2 = Atom(H_basis, Z=1)
+        O = Atom(O_basis, Z=8)
+        # randomize origins
+        H1.origin = np.random.uniform(-1, 1, size=3)
+        H2.origin = np.random.uniform(-1, 1, size=3)
+        O.origin = np.random.uniform(-1, 1, size=3)
+        # return molecule
+        return H1+H2+O
+
+    @pytest.mark.parametrize('num_runs', range(3))
+    def test_overlap_gradient_water(self, num_runs):
+        # create molecule
+        mol = self.random_water()
+        # get molecule parameters
+        basis = mol.basis
+        # these are constant, note that
+        # atom origins are assumed constant
+        C = mol.origins
+        Z = mol.Zs
+
+        # compute gradient
+        S_grad = ElectronicTISE(basis, C, Z).S_grad
+
+        eps = 1e-5
+        # approximate gradient w.r.t. H1
+        for d in range(3):
+            dx = np.eye(3)[d] * eps
+
+            for i, b in enumerate(basis):
+                # perturb origin of i-th basis element
+                basis_pos_pert = deepcopy(basis)
+                basis_neg_pert = deepcopy(basis)
+                basis_pos_pert[i].origin = basis[i].origin + dx
+                basis_neg_pert[i].origin = basis[i].origin - dx
+                # approximate partial derivative
+                dSdx = (
+                    ElectronicTISE(basis_pos_pert, C, Z).S - \
+                    ElectronicTISE(basis_neg_pert, C, Z).S
+                ) / (2.0 * eps)
+                # check independence
+                zero_mask = np.ones_like(dSdx, dtype=bool)
+                zero_mask[i, :] = zero_mask[:, i] = False
+                np.testing.assert_allclose(dSdx[zero_mask], 0, atol=eps)
+                # check gradients
+                np.testing.assert_allclose(S_grad[i, :, d], dSdx[i, :], atol=eps)
+                np.testing.assert_allclose(S_grad[i, :, d], dSdx[:, i], atol=eps)
+    
+    @pytest.mark.parametrize('num_runs', range(3))
+    def test_kinetic_gradient_water(self, num_runs):
+        # create molecule
+        mol = self.random_water()
+        # get molecule parameters
+        basis = mol.basis
+        # these are constant, note that
+        # atom origins are assumed constant
+        C = mol.origins
+        Z = mol.Zs
+
+        # compute gradient
+        T_grad = ElectronicTISE(basis, C, Z).T_grad
+
+        eps = 1e-5
+        # approximate gradient w.r.t. H1
+        for d in range(3):
+            dx = np.eye(3)[d] * eps
+
+            for i, b in enumerate(basis):
+                # perturb origin of i-th basis element
+                basis_pos_pert = deepcopy(basis)
+                basis_neg_pert = deepcopy(basis)
+                basis_pos_pert[i].origin = basis[i].origin + dx
+                basis_neg_pert[i].origin = basis[i].origin - dx
+                # approximate partial derivative
+                dTdx = (
+                    ElectronicTISE(basis_pos_pert, C, Z).T - \
+                    ElectronicTISE(basis_neg_pert, C, Z).T
+                ) / (2.0 * eps)
+                # check gradients
+                np.testing.assert_allclose(T_grad[i, :, d], dTdx[i, :], atol=eps)
+                np.testing.assert_allclose(T_grad[i, :, d], dTdx[:, i], atol=eps)
+    
+    @pytest.mark.parametrize('num_runs', range(3))
+    def test_attraction_gradient_water(self, num_runs):
+        # create molecule
+        mol = self.random_water()
+        # get molecule parameters
+        basis = mol.basis
+        # these are constant, note that
+        # atom origins are assumed constant
+        C = mol.origins
+        Z = mol.Zs
+
+        # compute gradient
+        V_grad = ElectronicTISE(basis, C, Z).V_en_grad
+
+        eps = 1e-5
+        # approximate gradient w.r.t. H1
+        for d in range(3):
+            dx = np.eye(3)[d] * eps
+
+            for i, b in enumerate(basis):
+                # perturb origin of i-th basis element
+                basis_pos_pert = deepcopy(basis)
+                basis_neg_pert = deepcopy(basis)
+                basis_pos_pert[i].origin = basis[i].origin + dx
+                basis_neg_pert[i].origin = basis[i].origin - dx
+                # approximate partial derivative
+                dVdx = (
+                    ElectronicTISE(basis_pos_pert, C, Z).V_en - \
+                    ElectronicTISE(basis_neg_pert, C, Z).V_en
+                ) / (2.0 * eps)
+                # check independence
+                zero_mask = np.ones_like(dVdx, dtype=bool)
+                zero_mask[i, :] = zero_mask[:, i] = False
+                np.testing.assert_allclose(dVdx[zero_mask], 0, atol=eps)
+                # check gradients match
+                np.testing.assert_allclose(V_grad[i, :, d], dVdx[i, :], atol=eps)
+                np.testing.assert_allclose(V_grad[i, :, d], dVdx[:, i], atol=eps)
+
+    @pytest.mark.parametrize('num_runs', range(3))
+    def test_repulsion_gradient_water(self, num_runs):
+        # create molecule
+        mol = self.random_water()
+        # get molecule parameters
+        basis = mol.basis
+        # these are constant, note that
+        # atom origins are assumed constant
+        C = mol.origins
+        Z = mol.Zs
+        # compute gradient
+        V_grad = ElectronicTISE(basis, C, Z).V_ee_grad
+
+        # for each dimension
+        for d in range(3):
+        
+            eps = 1e-5
+            # approximate partial derivatives and sum up
+            dVdx = np.zeros((len(basis),)*4)
+            dx = np.eye(3)[d] * eps
+
+            for i, b in enumerate(basis):
+                # perturb origin of i-th basis element
+                basis_pos_pert = deepcopy(basis)
+                basis_neg_pert = deepcopy(basis)
+                basis_pos_pert[i].origin = basis[i].origin + dx
+                basis_neg_pert[i].origin = basis[i].origin - dx
+                # approximate partial derivative
+                dVdx += (
+                    ElectronicTISE(basis_pos_pert, C, Z).V_ee - \
+                    ElectronicTISE(basis_neg_pert, C, Z).V_ee
+                ) / (2.0 * eps)
+
+            # compare
+            np.testing.assert_allclose(dVdx, V_grad[..., d], atol=eps)
+            # TOOD: for absolutely no intuitive reason
+            # this always evaluates to zero, something has to be wrong here
+            # however geometry optimization seems to work fine
+            np.testing.assert_allclose(dVdx, 0.0, atol=eps)

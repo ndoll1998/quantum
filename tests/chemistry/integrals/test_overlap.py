@@ -1,9 +1,132 @@
 import pytest
 import numpy as np
+from quantum.chemistry.orbital import GaussianOrbital
 from quantum.chemistry.integrals.overlap import Overlap
 from quantum.chemistry.integrals.helpers import create_expansion_coefficients
 
 class TestOverlap(object):
+
+    @pytest.mark.parametrize('num_runs', range(10))
+    @pytest.mark.parametrize('i', range(0, 2))
+    @pytest.mark.parametrize('j', range(0, 2))
+    @pytest.mark.parametrize('m', range(0, 2))
+    def test_interaction_with_self(self, num_runs, i, j, m):
+
+        # create some random values for the two GTOs
+        A_origin = np.random.uniform(-1, 1, size=3)
+        A_alpha = np.random.uniform(0.01, 0.5, size=2)
+        A_coeff = np.random.uniform(-0.5, 0.5, size=2)
+        # compute normamlizer
+        A_norm = GaussianOrbital(
+            alpha=A_alpha, 
+            coeff=A_coeff, 
+            origin=A_origin, 
+            angular=(i, j, m)
+        ).N
+
+        # create constant kwargs dict
+        kwargs = dict(
+            # GTO A
+            A_alpha=A_alpha,
+            A_coeff=A_coeff,
+            A_angular=(i, j, m),
+            A_norm=A_norm,
+            # GTO B
+            B_alpha=A_alpha,
+            B_coeff=A_coeff,
+            B_angular=(i, j, m),
+            B_norm=A_norm
+        ) 
+        
+        # create expansion coefficients
+        Ex, Ey, Ez = create_expansion_coefficients(
+            A_alpha=A_alpha,
+            A_origin=A_origin,
+            B_alpha=A_alpha,
+            B_origin=A_origin
+        )
+        
+        # compute overlap
+        S = Overlap.compute(Ex=Ex, Ey=Ey, Ez=Ez, **kwargs)
+        np.testing.assert_allclose(S, 1.0, atol=1e-7)
+
+        # compute gradients
+        dS_dA, dS_dB = Overlap.gradient(Ex=Ex, Ey=Ey, Ez=Ez, **kwargs)
+        # make sure gradients are zero
+        np.testing.assert_allclose(dS_dA, 0.0, atol=1e-7)    
+        np.testing.assert_allclose(dS_dB, 0.0, atol=1e-7)    
+
+    @pytest.mark.parametrize('num_runs', range(10))
+    @pytest.mark.parametrize('i', range(0, 2))
+    @pytest.mark.parametrize('j', range(0, 2))
+    @pytest.mark.parametrize('m', range(0, 2))
+    @pytest.mark.parametrize('k', range(0, 2))
+    @pytest.mark.parametrize('l', range(0, 2))
+    @pytest.mark.parametrize('n', range(0, 2))
+    def test_symmetry(self, num_runs, i, j, m, k, l, n):
+
+        # create some random values for the two GTOs
+        A_origin = np.random.uniform(-1, 1, size=3)
+        B_origin = np.random.uniform(-1, 1, size=3)
+        A_alpha = np.random.uniform(0.01, 0.5, size=2)
+        B_alpha = np.random.uniform(0.01, 0.5, size=2)
+        A_coeff = np.random.uniform(-0.5, 0.5, size=2)
+        B_coeff = np.random.uniform(-0.5, 0.5, size=2)
+        
+        # create expansion coefficients
+        Ex, Ey, Ez = create_expansion_coefficients(
+            A_alpha=A_alpha,
+            A_origin=A_origin,
+            B_alpha=B_alpha,
+            B_origin=B_origin
+        )
+        # compute
+        S_AB = Overlap.compute(
+            # GTO A
+            A_alpha=A_alpha,
+            A_coeff=A_coeff,
+            A_angular=(i, j, m),
+            A_norm=np.ones(1),
+            # GTO B
+            B_alpha=B_alpha,
+            B_coeff=B_coeff,
+            B_angular=(k, l, n),
+            B_norm=np.ones(1),
+            # GTO pair AB
+            Ex=Ex, 
+            Ey=Ey, 
+            Ez=Ez
+        )
+        
+        # swap GTOs A and B to test symmetry
+
+        # create expansion coefficients
+        Ex, Ey, Ez = create_expansion_coefficients(
+            A_alpha=B_alpha,
+            A_origin=B_origin,
+            B_alpha=A_alpha,
+            B_origin=A_origin
+        )
+        # compute
+        S_BA = Overlap.compute(
+            # GTO A
+            A_alpha=B_alpha,
+            A_coeff=B_coeff,
+            A_angular=(k, l, n),
+            A_norm=np.ones(1),
+            # GTO B
+            B_alpha=A_alpha,
+            B_coeff=A_coeff,
+            B_angular=(i, j, m),
+            B_norm=np.ones(1),
+            # GTO pair AB
+            Ex=Ex, 
+            Ey=Ey, 
+            Ez=Ez
+        )
+
+        # compare
+        np.testing.assert_allclose(S_AB, S_BA)
     
     @pytest.mark.parametrize('num_runs', range(10))
     @pytest.mark.parametrize('i', range(0, 2))
@@ -91,74 +214,3 @@ class TestOverlap(object):
         np.testing.assert_allclose(dS_dA, dS_dA_ft, atol=eps)
         np.testing.assert_allclose(dS_dB, -dS_dA)
 
-    @pytest.mark.parametrize('num_runs', range(10))
-    @pytest.mark.parametrize('i', range(0, 2))
-    @pytest.mark.parametrize('j', range(0, 2))
-    @pytest.mark.parametrize('m', range(0, 2))
-    @pytest.mark.parametrize('k', range(0, 2))
-    @pytest.mark.parametrize('l', range(0, 2))
-    @pytest.mark.parametrize('n', range(0, 2))
-    def test_symmetry(self, num_runs, i, j, m, k, l, n):
-
-        # create some random values for the two GTOs
-        A_origin = np.random.uniform(-1, 1, size=3)
-        B_origin = np.random.uniform(-1, 1, size=3)
-        A_alpha = np.random.uniform(0.01, 0.5, size=2)
-        B_alpha = np.random.uniform(0.01, 0.5, size=2)
-        A_coeff = np.random.uniform(-0.5, 0.5, size=2)
-        B_coeff = np.random.uniform(-0.5, 0.5, size=2)
-        
-        # create expansion coefficients
-        Ex, Ey, Ez = create_expansion_coefficients(
-            A_alpha=A_alpha,
-            A_origin=A_origin,
-            B_alpha=B_alpha,
-            B_origin=B_origin
-        )
-        # compute
-        S_AB = Overlap.compute(
-            # GTO A
-            A_alpha=A_alpha,
-            A_coeff=A_coeff,
-            A_angular=(i, j, m),
-            A_norm=np.ones(1),
-            # GTO B
-            B_alpha=B_alpha,
-            B_coeff=B_coeff,
-            B_angular=(k, l, n),
-            B_norm=np.ones(1),
-            # GTO pair AB
-            Ex=Ex, 
-            Ey=Ey, 
-            Ez=Ez
-        )
-        
-        # swap GTOs A and B to test symmetry
-
-        # create expansion coefficients
-        Ex, Ey, Ez = create_expansion_coefficients(
-            A_alpha=B_alpha,
-            A_origin=B_origin,
-            B_alpha=A_alpha,
-            B_origin=A_origin
-        )
-        # compute
-        S_BA = Overlap.compute(
-            # GTO A
-            A_alpha=B_alpha,
-            A_coeff=B_coeff,
-            A_angular=(k, l, n),
-            A_norm=np.ones(1),
-            # GTO B
-            B_alpha=A_alpha,
-            B_coeff=A_coeff,
-            B_angular=(i, j, m),
-            B_norm=np.ones(1),
-            # GTO pair AB
-            Ex=Ex, 
-            Ey=Ey, 
-            Ez=Ez
-        )
-
-        # compare
-        np.testing.assert_allclose(S_AB, S_BA)
