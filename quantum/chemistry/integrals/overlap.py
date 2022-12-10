@@ -94,6 +94,7 @@ class Overlap(object):
             Ey.deriv(k, l, 0, 1),
             Ez.deriv(m, n, 0, 1)
         )
+
         # apply product rule to compute final derivative
         dS_dAx = np.stack([
             (E_dx[0] * E[1] * E[2]),  # x-derivative

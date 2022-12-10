@@ -103,14 +103,16 @@ class ElectronicTISE(TISE):
     @cached_property
     def S(self) -> np.ndarray:
         """ Overlap Matrix """
-
-        # create empty matrix to hold values
+        # create empty matrix to hold values, note that
+        # overlap with self is always 1.0
         S = np.empty((len(self.basis), len(self.basis)))
+        np.fill_diagonal(S, 1.0)
+        # create empty matrix to hold values
 
         # compute all values
         # make use of symmetric property of one-electron integrals
         for i, A in enumerate(self.basis):
-            for j, B in enumerate(self.basis[:i+1]):
+            for j, B in enumerate(self.basis[:i]):
                 S[i, j] = S[j, i] = Overlap.compute(
                     # GTO A
                     A_coeff=A.coeff,
@@ -134,14 +136,17 @@ class ElectronicTISE(TISE):
     @cached_property
     def S_grad(self) -> np.ndarray:
         """ Gradient of the Overlap Matrix """
-        
-        # create empty matrix to hold values
+        # create empty matrix to hold values, note that
+        # overlap with self is constant thus has gradient 0
         S_grad = np.zeros((len(self.basis), len(self.basis), 3))
+        np.fill_diagonal(S_grad[:, :, 0], 0)        
+        np.fill_diagonal(S_grad[:, :, 1], 0)        
+        np.fill_diagonal(S_grad[:, :, 2], 0)        
 
         # compute all values
         # make use of symmetric property of one-electron integrals
         for i, A in enumerate(self.basis):
-            for j, B in enumerate(self.basis[:i+1]):
+            for j, B in enumerate(self.basis[:i]):
                 S_grad[i, j, :], S_grad[j, i, :] = Overlap.gradient(
                     # GTO A
                     A_coeff=A.coeff,
@@ -165,7 +170,8 @@ class ElectronicTISE(TISE):
     @cached_property
     def T(self) -> np.ndarray:
         """ Kinetic Energy Matrix """
-        # create empty matrix to hold values
+        # create empty matrix to hold values, note
+        # that kinetic energy matrix is hollow
         T = np.empty((len(self.basis), len(self.basis)))
 
         # compute all values
@@ -197,11 +203,15 @@ class ElectronicTISE(TISE):
         """ Gradient of the Kinetic Energy Matrix """
         # create empty matrix to hold values
         T_grad = np.empty((len(self.basis), len(self.basis), 3))
+        # TODO: check this
+        np.fill_diagonal(T_grad[:, :, 0], 0)
+        np.fill_diagonal(T_grad[:, :, 1], 0)
+        np.fill_diagonal(T_grad[:, :, 2], 0)
 
         # compute all values
         # make use of symmetric property of one-electron integrals
         for i, A in enumerate(self.basis):
-            for j, B in enumerate(self.basis[:i+1]):
+            for j, B in enumerate(self.basis[:i]):
                 T_grad[i, j, :], T_grad[j, i, :] = Kinetic.gradient(
                     # GTO A
                     A_coeff=A.coeff,
@@ -259,13 +269,13 @@ class ElectronicTISE(TISE):
     def V_en_grad(self) -> np.ndarray:
         """ Gradient of the Electron-Nuclear Attraction Matrix """
         # create empty matrix to hold values
-        V_grad = np.empty((len(self.basis), len(self.basis), 3))
+        V_grad = np.zeros((len(self.basis), len(self.basis), 3))
 
         # compute all values
         # make use of symmetric property of one-electron integrals
         for i, A in enumerate(self.basis):
             for j, B in enumerate(self.basis[:i+1]):
-                V_grad[i, j, :], V_grad[j, i, :] = ElectronNuclearAttraction.gradient(
+                dVdA, dVdB = ElectronNuclearAttraction.gradient(
                     Z=self.Z,
                     # GTO A
                     A_coeff=A.coeff,
@@ -284,6 +294,8 @@ class ElectronicTISE(TISE):
                     # global
                     R_PC=self.R_PC[i, j]
                 )
+                V_grad[i, j, :] += dVdA
+                V_grad[j, i, :] += dVdB
 
         # return overlap matrix
         return V_grad
@@ -347,8 +359,60 @@ class ElectronicTISE(TISE):
     @cached_property
     def V_ee_grad(self) -> np.ndarray:
         """ Gradient of the Electron-Electron Repulsion Tensor """
-        # TODO: not implemented!
-        return np.zeros((len(self.basis), len(self.basis), len(self.basis), len(self.basis), 3))
+        # create empty matrix to hold values
+        V_grad = np.zeros((len(self.basis), len(self.basis), len(self.basis), len(self.basis), 3))
+
+        # compute all values
+        for i, A in enumerate(self.basis):
+            for j, B in enumerate(self.basis[:i+1]):
+                for k, C in enumerate(self.basis):
+                    for l, D in enumerate(self.basis[:k+1]):
+                        # make use of full symmetric property
+                        if (i*(i+1)//2 + j) >= (k*(k+1)//2 + l):
+                            dVdA, dVdB, dVdC, dVdD = ElectronElectronRepulsion.gradient(
+                                # GTO A
+                                A_coeff=A.coeff,
+                                A_alpha=A.alpha,
+                                A_angular=A.angular,
+                                A_norm=A.N,
+                                # GTO B
+                                B_coeff=B.coeff,
+                                B_alpha=B.alpha,
+                                B_angular=B.angular,
+                                B_norm=B.N,
+                                # GTO C
+                                C_coeff=C.coeff,
+                                C_alpha=C.alpha,
+                                C_angular=C.angular,
+                                C_norm=C.N,
+                                # GTO D
+                                D_coeff=D.coeff,
+                                D_alpha=D.alpha,
+                                D_angular=D.angular,
+                                D_norm=D.N,
+                                # GTO pair AB
+                                Ex_AB=self.expan_coeffs[i, j, 0],
+                                Ey_AB=self.expan_coeffs[i, j, 1],
+                                Ez_AB=self.expan_coeffs[i, j, 2],
+                                # GTO pair CD
+                                Ex_CD=self.expan_coeffs[k, l, 0],
+                                Ey_CD=self.expan_coeffs[k, l, 1],
+                                Ez_CD=self.expan_coeffs[k, l, 2],
+                                # global
+                                R_PP=self.R_PP[i, j, k, l]
+                            )
+                            # sum up and set entries
+                            val = dVdA + dVdB + dVdC + dVdD
+                            V_grad[i, j, k, l, :] = val
+                            V_grad[i, j, l, k, :] = val
+                            V_grad[j, i, k, l, :] = val
+                            V_grad[j, i, l, k, :] = val
+                            V_grad[k, l, i, j, :] = val
+                            V_grad[k, l, j, i, :] = val
+                            V_grad[l, k, i, j, :] = val
+                            V_grad[l, k, j, i, :] = val
+
+        return V_grad
     
     @cached_property
     def E_nn(self) -> float:
@@ -377,8 +441,6 @@ class ElectronicTISE(TISE):
                     the repulsion energy derivative matrix of shape (n, 3) where
                     n the number of atoms.
         """
-        
-
         Z = molecule.Zs
         C = molecule.origins
         # compute pairwise distances between nuclei
