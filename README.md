@@ -176,7 +176,7 @@ Es = optim.optimize(max_iters=100, tol=1e-5)
 molecule = optim.molecule
 ```
 
-Animating the gradient descent optimization process for methane ($CH_4$) gives the below figure:
+Animating the gradient descent optimization process for methane ( $CH_4$ ) gives the below figure:
 
 ![CH4 Gradient Descent](./docs/CH4_geometry.gif)
 
