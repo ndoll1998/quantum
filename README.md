@@ -178,7 +178,7 @@ molecule = optim.molecule
 
 Visualizing the energy history computed by the gradient descent alogithm gives the plot below.
 
-![H2 Gradient Descent](./docs/H2_geometry.png)
+![CH4 Gradient Descent](./docs/CH4_geometry.png)
 
 ## Future Work
 
