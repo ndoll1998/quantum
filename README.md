@@ -176,9 +176,9 @@ Es = optim.optimize(max_iters=100, tol=1e-5)
 molecule = optim.molecule
 ```
 
-Visualizing the energy history computed by the gradient descent alogithm gives the plot below.
+Animating the gradient descent optimization process for methane ($CH_4$) gives the below figure:
 
-![CH4 Gradient Descent](./docs/CH4_geometry.png)
+![CH4 Gradient Descent](./docs/CH4_geometry.gif)
 
 ## Future Work
 

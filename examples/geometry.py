@@ -56,17 +56,6 @@ ATOM_VALENCE_RADII = np.array([
     1600, 1600, 1600, 1600, 1600, 1600
 ], dtype=np.float32) / 1000.0 * (1.0/0.529177)
 
-"""
-    H1 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    H2 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    H3 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    H4 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    H5 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    H6 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    C1 = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
-    C2 = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
-"""
-
 def geometry_optimization():
     
     # create atoms at random positions
@@ -74,15 +63,12 @@ def geometry_optimization():
     H2 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
     H3 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
     H4 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    H5 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    H6 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    C1 = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
-    C2 = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
+    C = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
 
     # optimize molecular geometry
     optim = quantum.chemistry.GradientDescentGeometryOptimizer(
-        mol=H1+H2+H3+C1+C2+H4+H5+H6,
-        alpha=0.05,
+        mol=H1+H2+H3+H4+C,
+        alpha=0.03,
         rhf_max_cycles=1000
     )
     
@@ -154,7 +140,7 @@ def geometry_optimization():
             line.set_data(C[:, 0], C[:, 1])
             line.set_3d_properties(C[:, 2])
             # check if bond is effective
-            d = np.linalg.norm(Ai.origin - Aj.origin)
+            d = np.linalg.norm(C[0, :] - C[1, :])
             v = d < ATOM_VALENCE_RADII[Ai.Z] + ATOM_VALENCE_RADII[Aj.Z]
             # update visibility
             line.set_visible(v)
