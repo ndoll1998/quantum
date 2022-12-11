@@ -1,10 +1,12 @@
 import quantum
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import animation
+from matplotlib.colors import ListedColormap
 from itertools import combinations
 
 # color scheme
-ATOM_COLORS = [
+ATOM_COLORS = ListedColormap([
     "tab:orange",
     "tab:blue",
     "tab:green",
@@ -14,7 +16,7 @@ ATOM_COLORS = [
     "tab:pink",
     "tab:olive",
     "tab:cyan"
-]
+])
 BOND_COLOR = "tab:gray"
 
 # atomix symbols used for plot legend
@@ -54,6 +56,16 @@ ATOM_VALENCE_RADII = np.array([
     1600, 1600, 1600, 1600, 1600, 1600
 ], dtype=np.float32) / 1000.0 * (1.0/0.529177)
 
+"""
+    H1 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
+    H2 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
+    H3 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
+    H4 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
+    H5 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
+    H6 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
+    C1 = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
+    C2 = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
+"""
 
 def geometry_optimization():
     
@@ -62,23 +74,34 @@ def geometry_optimization():
     H2 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
     H3 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
     H4 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    C = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
+    H5 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
+    H6 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
+    C1 = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
+    C2 = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
 
     # optimize molecular geometry
     optim = quantum.chemistry.GradientDescentGeometryOptimizer(
-        mol=H1+H2+H3+H4+C,
-        alpha=0.03
+        mol=H1+H2+H3+C1+C2+H4+H5+H6,
+        alpha=0.05,
+        rhf_max_cycles=1000
     )
-    Es = optim.optimize(max_iters=250, tol=1e-5)
-    print("Final RHF Energy: %.06f" % Es[-1])
+    
+    Es, Cs = [], []
+    for i, (E, mol) in enumerate(optim.optimize(max_iters=50, tol=1e-5), 1):
+        print("Step %i: RHF Energy %.05f" % (i, E))
+        Es.append(E)
+        Cs.append(mol.origins * 0.529177)
 
+    print("Final RHF Energy: %.06f" % Es[-1])
+   
+ 
     # create figure for plots
     fig = plt.figure(figsize=(8, 4), tight_layout=True)
-    ax = fig.add_subplot(1, 2, 1)
+    ax1 = fig.add_subplot(1, 2, 1)
     # plot optimization course
-    ax.plot(Es[1:])
-    ax.grid()
-    ax.set(
+    E_curve, = ax1.plot(Es)
+    ax1.grid()
+    ax1.set(
         title="Gradient Descent Optimization",
         xlabel="iteration",
         ylabel="Energy in Hartree ($Ha$)"
@@ -87,35 +110,69 @@ def geometry_optimization():
     # get atom charges and final positions
     # and convert to angstrom for visualization
     Z = optim.molecule.Zs
-    C = optim.molecule.origins * 0.529177
+    C = Cs[-1]
 
     # set up axis
-    ax = fig.add_subplot(1, 2, 2, projection='3d')
-    ax.set(title="Molecular Geometry ($\AA$)")
-    
+    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+    ax2.set(title="Molecular Geometry ($\AA$)")
     # plot atoms
-    for z in np.unique(Z):
-        ax.scatter(
-            C[Z==z, 0], C[Z==z, 1], C[Z==z, 2], 
-            color=ATOM_COLORS[z%len(ATOM_COLORS)], 
-            label=ATOM_SYMBOLS[z],
-            s=100
-        )
-    
-    # bonds between atoms
-    for Ai, Aj in combinations(optim.molecule.atoms, 2):
-        # check for bond between atoms
-        d = np.linalg.norm(Ai.origin - Aj.origin)
-        if d < ATOM_VALENCE_RADII[Ai.Z] + ATOM_VALENCE_RADII[Aj.Z]:
-            P = np.stack([Ai.origin, Aj.origin], axis=0) * 0.529177
-            ax.plot(P[:, 0], P[:, 1], P[:, 2], color=BOND_COLOR)
+    atoms = ax2.scatter(
+        C[:, 0], C[:, 1], C[:, 2],
+        c=Z,
+        cmap=ATOM_COLORS,
+        s=100
+    )
+    # plot bonds between all atoms
+    bonds = {
+        (i, j): ax2.plot(
+            C[(i, j), 0], C[(i, j), 1], C[(i, j), 2],
+            color=BOND_COLOR
+        )[0]
+        for i, j in combinations(range(len(optim.molecule.atoms)), 2)
+    }
+
 
     # add legend
-    ax.legend()
+    handles, labels = atoms.legend_elements()
+    ax2.legend(
+        handles=handles, 
+        labels=[ATOM_SYMBOLS[int(l[14:-2])] for l in labels]
+    )
 
-    return fig
+    def update(k):
+        # update energy curve
+        E_curve.set_data(list(range(k+1)), Es[:k+1])
+        # update atom positions
+        atoms._offsets3d = (Cs[k][:, 0], Cs[k][:, 1], Cs[k][:, 2])
+        # update bonds
+        for (i, j), line in bonds.items():
+            # get atoms
+            Ai = optim.molecule.atoms[i]
+            Aj = optim.molecule.atoms[j]
+            # update bond points
+            C = Cs[k][(i, j), :]
+            line.set_data(C[:, 0], C[:, 1])
+            line.set_3d_properties(C[:, 2])
+            # check if bond is effective
+            d = np.linalg.norm(Ai.origin - Aj.origin)
+            v = d < ATOM_VALENCE_RADII[Ai.Z] + ATOM_VALENCE_RADII[Aj.Z]
+            # update visibility
+            line.set_visible(v)
+
+        return E_curve, atoms, *bonds.values()
+
+    # animate
+    anim = animation.FuncAnimation(
+        fig, update, 
+        frames=len(Es),
+        interval=20,
+        blit=True
+    )
+
+    return fig, anim
 
 if __name__ == '__main__':
-
-    fig = geometry_optimization()
+    
+    fig, anim = geometry_optimization()
+    anim.save("/mnt/c/users/Nicla/OneDrive/Bilder/anim.gif", fps=4)
     fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")

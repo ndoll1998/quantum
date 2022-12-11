@@ -18,7 +18,7 @@ class GeometryOptimizer(ABC):
             num_occ_orbitals (int): 
                 the number of occupied orbitals, i.e. half the number of electrons in the system.
                 Defaults to sum(Z)//2 where Z is the list of atom charges.
-            rhf_num_cycles (Optional[int]):
+            rhf_max_cycles (Optional[int]):
                 maximum number of SCF-cycles to run in restricted
                 hartree-fock routine (see `ElectronicTISE.restricted_hartree_fock`)
             rhf_tol (Optional[float]):
@@ -29,14 +29,14 @@ class GeometryOptimizer(ABC):
     def __init__(self, 
         mol:Molecule, 
         num_occ_orbitals:Optional[int] =None,
-        rhf_num_cycles:Optional[int] =None,
+        rhf_max_cycles:Optional[int] =None,
         rhf_tol:Optional[float] =None
     ) -> None:
         self.n_occ = num_occ_orbitals or (mol.Zs.sum()//2)
         # build hartree-fock keyword arguments
         self.rhf_kwargs = {'num_occ_orbitals': self.n_occ}
-        if rhf_num_cycles is not None:
-            self.rhf_kwargs['num_cycles'] = rhf_num_cycles
+        if rhf_max_cycles is not None:
+            self.rhf_kwargs['max_cycles'] = rhf_max_cycles
         if rhf_tol is not None:
             self.rhf_kwargs['tol'] = rhf_tol
 
@@ -83,7 +83,7 @@ class GeometryOptimizer(ABC):
         """
         raise NotImplementedError()
 
-    def optimize(self, max_iters:int, tol:float =1e-5) -> List[float]:
+    def optimize(self, max_iters:int, tol:float =1e-5) -> iter:
         """ Optimize the molecule geometry until some convergence criteria is met.
             
             Args:
@@ -93,12 +93,13 @@ class GeometryOptimizer(ABC):
                     tolerance value used to detect convergence based on
                     hartree-fock energy of molecule state. Defaults to 1e-5.
 
-            Returns:
-                history (List[float]):
-                    history of hartree-fock energies
+            Yields:
+                E (float): 
+                    Hartree-Fock Energy of last optimization step
+                mol (Molecule):
+                    Molecule state of last optimization step
         """
 
-        history = [self.state.E]
         # iterate step function until convergence criteria is met
         for _ in range(max_iters):
             # get energy before update for convergence check
@@ -106,14 +107,11 @@ class GeometryOptimizer(ABC):
             # perform an update step
             mol = self.step(self.state.mol)
             self.update_state(mol=mol)
-            # add new energy state to history
-            history.append(self.state.E)
-            print(self.state.E)
+            # yield energy and molecule after optimization step
+            yield self.state.E, self.state.mol
             # check for convergence
             if abs(self.state.E - prev_E) < tol:
                 break
-
-        return history
 
 class GradientDescentGeometryOptimizer(GeometryOptimizer):
     """ First-order Gradient Descent Geometry Optimizer
@@ -124,7 +122,7 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
                 the number of occupied orbitals, i.e. half the number of electrons in the system.
                 Defaults to sum(Z)//2 where Z is the list of atom charges.
             alpha (float): step size of gradient descent update. Defaults to 0.1.
-            rhf_num_cycles (Optional[int]):
+            rhf_max_cycles (Optional[int]):
                 maximum number of SCF-cycles to run in restricted
                 hartree-fock routine (see `ElectronicTISE.restricted_hartree_fock`)
             rhf_tol (Optional[float]):
@@ -137,14 +135,14 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
         mol:Molecule,
         num_occ_orbitals:int =None,
         alpha:float =0.1,
-        rhf_num_cycles:Optional[int] =None,
+        rhf_max_cycles:Optional[int] =None,
         rhf_tol:Optional[float] =None
     ) -> None:
         # initialize geometry optimizer
         super(GradientDescentGeometryOptimizer, self).__init__(
             mol=mol,
             num_occ_orbitals=num_occ_orbitals,
-            rhf_num_cycles=rhf_num_cycles,
+            rhf_max_cycles=rhf_max_cycles,
             rhf_tol=rhf_tol
         )
         # save step size
