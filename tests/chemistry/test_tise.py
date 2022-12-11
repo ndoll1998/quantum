@@ -82,6 +82,9 @@ C_basis = [
 ]
 
 class TestRhfEnergy(object):
+    """ Compare RHF energies of different molecules to values reported 
+        in tests of https://github.com/jjgoings/McMurchie-Davidson
+    """
 
     def test_rhf_energy_hydrogen(self):
         # create hydrogen atoms
@@ -96,12 +99,11 @@ class TestRhfEnergy(object):
         # check with expectation
         np.testing.assert_allclose(E, -1.1167592920796137, atol=1e-10)
     
-    def test_rhf_energy_oxygen(self):
+    def test_rhf_energy_water(self):
         # build hydrogen and oxygen atoms
         H1 = Atom(basis=H_basis, Z=1)
         H2 = Atom(basis=H_basis, Z=1)
         O = Atom(basis=O_basis, Z=8)
-
         # position as dipole
         H1.origin = np.asarray([-0.866811829, 0.601435779, 0]) / 0.529177
         H2.origin = np.asarray([0.866811829, 0.601435779, 0]) / 0.529177
@@ -132,6 +134,80 @@ class TestRhfEnergy(object):
         E, _, _ = tise.restricted_hartree_fock()
         # check with expectation
         np.testing.assert_allclose(E, -39.726851323525985, atol=1e-10)
+
+
+class TestIntegralsWater(object):
+    """ Compare integrals with values reported in:
+        https://chemistry.montana.edu/callis/courses/chmy564/460water.pdf
+    """
+
+    def water(self):
+        # build hydrogen and oxygen atoms
+        H1 = Atom(basis=H_basis, Z=1)
+        H2 = Atom(basis=H_basis, Z=1)
+        O = Atom(basis=O_basis, Z=8)
+        # set origins
+        H1.origin = np.asarray([0.0, 0.751155, -0.465285]) / 0.529177
+        H2.origin = np.asarray([0.0, -0.751155, -0.465285]) / 0.529177
+        O.origin =  np.asarray([0.0, 0.0, 0.116321]) / 0.529177
+        return O+H1+H2
+
+    def test_overlap(self):
+        # compute overlap matrix and compare
+        np.testing.assert_allclose(
+            ElectronicTISE.from_molecule(self.water()).S,
+            # see Figure 1
+            np.asarray([
+                [1.000, 0.237, 0.000,  0.000,  0.000,  0.055,  0.055],
+                [0.237, 1.000, 0.000,  0.000,  0.000,  0.479,  0.479],
+                [0.000, 0.000, 1.000,  0.000,  0.000,  0.000,  0.000],
+                [0.000, 0.000, 0.000,  1.000,  0.000,  0.313, -0.313],
+                [0.000, 0.000, 0.000,  0.000,  1.000, -0.242, -0.242],
+                [0.055, 0.479, 0.000,  0.313, -0.242,  1.000,  0.256],
+                [0.055, 0.479, 0.000, -0.313, -0.242,  0.256,  1.000]
+            ]),
+            atol=1e-3
+        )
+
+    def test_kinetic(self):
+        np.testing.assert_allclose(
+            ElectronicTISE.from_molecule(self.water()).T,
+            # see Figure 2
+            np.asarray([
+                [29.003, -0.168, 0.000,  0.000,  0.000, -0.002, -0.002],
+                [-0.168,  0.808, 0.000,  0.000,  0.000,  0.132,  0.132],
+                [ 0.000,  0.000, 2.529,  0.000,  0.000,  0.000,  0.000],
+                [ 0.000,  0.000, 0.000,  2.529,  0.000,  0.229, -0.229],
+                [ 0.000,  0.000, 0.000,  0.000,  2.529, -0.177, -0.177],
+                [-0.002,  0.132, 0.000,  0.229, -0.177,  0.760,  0.009],
+                [-0.002,  0.132, 0.000, -0.229, -0.177,  0.009,  0.760]
+            ]),
+            atol=1e-3
+        )
+        
+    def test_attraction(self):
+        np.testing.assert_allclose(
+            ElectronicTISE.from_molecule(self.water()).V_en,
+            # see Figure 3
+            np.asarray([
+                [-61.733,  -7.447,  0.000,   0.000,   0.019, -1.778, -1.778],
+                [ -7.447, -10.151,  0.000,   0.000,   0.226, -3.920, -3.920],
+                [  0.000,   0.000, -9.993,   0.000,   0.000,  0.000,  0.000],
+                [  0.000,   0.000,  0.000, -10.152,   0.000, -2.277,  2.277],
+                [  0.019,   0.226,  0.000,   0.000, -10.088,  1.837,  1.837],
+                [ -1.778,  -3.920,  0.000,  -2.277,   1.837, -5.867, -1.652],
+                [ -1.778,  -3.920,  0.000,   2.277,   1.837, -1.652, -5.867]
+            ]),
+            atol=1e-3
+        )
+    
+    def test_rhf_energy(self):
+        # solve
+        tise = ElectronicTISE.from_molecule(self.water())
+        E, _, _ = tise.restricted_hartree_fock()
+        # check with expectation
+        np.testing.assert_allclose(E, -74.96175778258913, atol=1e-10)
+
 
 class TestIntegralGradients(object):
     
