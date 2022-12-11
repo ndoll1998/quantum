@@ -168,11 +168,11 @@ The bond dissociation curves show a naive approach of finding stable states of b
 
 ```python
 optim = GradientDescentGeometryOptimizer(
-    mol=H1+H2,
-    alpha=0.4
+    mol=H1+H2+H3+H4+C,
+    alpha=0.03
 )
 # optimize molecular geometry
-Es = optim.optimize(max_iters=50, tol=-1)
+Es = optim.optimize(max_iters=100, tol=1e-5)
 molecule = optim.molecule
 ```
 
