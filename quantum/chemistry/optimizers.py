@@ -166,19 +166,27 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
         P = 2.0 * C_part @ C_part.T.conjugate()
         Q = 2.0 * (C_part * F_part) @ C_part.T.conjugate()
         
-        # get gradient of two-electron integral
-        # TODO: currently always evaluates to zero anyway
-        # (see `test_repulsion_gradient_water` in tests.chemistry.test_tise.py)
-        V_ee_grad = np.zeros((len(self.state.tise.basis),)*4 + (3,)) 
-        # compute gradient of G
-        J_grad, K_grad = V_ee_grad, V_ee_grad.swapaxes(1, 3)
-        G_grad = np.sum(P[None, None, :, :, None] * (J_grad - 0.5 * K_grad), axis=(2, 3))        
-        # compute gradient on basis-level
+        # get all one-electron integral gradients
+        dSdx = self.state.tise.S_grad
+        dTdx = self.state.tise.T_grad
+        dVdx = self.state.tise.V_en_grad
+        # build gradient of G from gradient of two-electron integral
+        dJdx = self.state.tise.V_ee_grad
+        dKdx = self.state.tise.V_ee_grad.swapaxes(2, 4)
+        dGdx = np.sum(P[None, None, None, :, :, None] * (dJdx - 0.5 * dKdx), axis=(3, 4))
+
+        # compute gradient of energy w.r.t. basis origins
+        # this doesn't include the nuclear-nuclear repulsion term
+        # yet as it can't be computed on basis-level but only on
+        # atom-level
         dEdx = (
-            P[:, :, None] * (self.state.tise.T_grad + self.state.tise.V_en_grad) + \
-            P[:, :, None] * G_grad - \
-            Q[:, :, None] * self.state.tise.S_grad
-        )
+            # core hamiltonian term
+            (P.T[None, :, :, None] * (dTdx + dVdx)) + \
+            # electron-electron repulsion term
+            0.5 * (P.T[None, :, :, None] * dGdx) + \
+            # overlap term
+            -(Q.T[None, :, :, None] * dSdx)
+        ).sum(axis=(1, 2))
 
         # build atom id vector, indicates which atom a specific
         # basis element corresponds to
@@ -186,9 +194,9 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
         # transform gradient from basis-level to atom-level by summation
         # and add nuclear-nuclear repulsion energy gradient
         return self.state.tise.E_nn_grad(self.state.mol) + np.asarray([
-            dEdx[atom_ids == i, :, :].sum(axis=(0, 1))
+            dEdx[atom_ids == i, :].sum(axis=0)
             for i in range(len(self.state.mol.atoms))
-        ]) * 2.0
+        ])
     
     def step(self, mol:Molecule) -> Molecule:
         """ Implements a single gradient descent step.
