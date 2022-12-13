@@ -136,18 +136,17 @@ class ElectronicTISE(TISE):
     @cached_property
     def S_grad(self) -> np.ndarray:
         """ Gradient of the Overlap Matrix """
-        # create empty matrix to hold values, note that
-        # overlap with self is constant thus has gradient 0
-        S_grad = np.zeros((len(self.basis), len(self.basis), 3))
-        np.fill_diagonal(S_grad[:, :, 0], 0)        
-        np.fill_diagonal(S_grad[:, :, 1], 0)        
-        np.fill_diagonal(S_grad[:, :, 2], 0)        
+        # create empty matrix to hold values, initialize
+        # with zeros as the matrix is very sparse
+        S_grad = np.zeros((len(self.basis), len(self.basis), len(self.basis), 3))
 
         # compute all values
         # make use of symmetric property of one-electron integrals
         for i, A in enumerate(self.basis):
+            # overlap with self is constant thus has gradient 0
+            # meaning value (i, j) doesn't need to be computed
             for j, B in enumerate(self.basis[:i]):
-                S_grad[i, j, :], S_grad[j, i, :] = Overlap.gradient(
+                dSdA, dSdB = Overlap.gradient(
                     # GTO A
                     A_coeff=A.coeff,
                     A_alpha=A.alpha,
@@ -163,6 +162,9 @@ class ElectronicTISE(TISE):
                     Ey=self.expan_coeffs[i, j, 1],
                     Ez=self.expan_coeffs[i, j, 2]
                 )
+                # set all values
+                S_grad[i, [i, j], [j, i], :] = dSdA
+                S_grad[j, [i, j], [j, i], :] = dSdB
 
         # return overlap matrix
         return S_grad
@@ -201,18 +203,17 @@ class ElectronicTISE(TISE):
     @cached_property
     def T_grad(self) -> np.ndarray:
         """ Gradient of the Kinetic Energy Matrix """
-        # create empty matrix to hold values
-        T_grad = np.empty((len(self.basis), len(self.basis), 3))
-        # TODO: check this
-        np.fill_diagonal(T_grad[:, :, 0], 0)
-        np.fill_diagonal(T_grad[:, :, 1], 0)
-        np.fill_diagonal(T_grad[:, :, 2], 0)
+        # create empty matrix to hold values, again
+        # very sparse matrix so initialize with zeros
+        T_grad = np.zeros((len(self.basis), len(self.basis), len(self.basis), 3))
 
         # compute all values
         # make use of symmetric property of one-electron integrals
         for i, A in enumerate(self.basis):
+            # again gradient is hollow meaning gradient of
+            # (i, j) is zero so skip computing diagonal
             for j, B in enumerate(self.basis[:i]):
-                T_grad[i, j, :], T_grad[j, i, :] = Kinetic.gradient(
+                dTdA, dTdB = Kinetic.gradient(
                     # GTO A
                     A_coeff=A.coeff,
                     A_alpha=A.alpha,
@@ -228,6 +229,9 @@ class ElectronicTISE(TISE):
                     Ey=self.expan_coeffs[i, j, 1],
                     Ez=self.expan_coeffs[i, j, 2]
                 )
+                # set all values
+                T_grad[i, [i, j], [j, i], :] = dTdA
+                T_grad[j, [i, j], [j, i], :] = dTdB
 
         # return overlap matrix
         return T_grad
@@ -269,7 +273,7 @@ class ElectronicTISE(TISE):
     def V_en_grad(self) -> np.ndarray:
         """ Gradient of the Electron-Nuclear Attraction Matrix """
         # create empty matrix to hold values
-        V_grad = np.zeros((len(self.basis), len(self.basis), 3))
+        V_grad = np.zeros((len(self.basis), len(self.basis), len(self.basis), 3))
 
         # compute all values
         # make use of symmetric property of one-electron integrals
@@ -294,8 +298,9 @@ class ElectronicTISE(TISE):
                     # global
                     R_PC=self.R_PC[i, j]
                 )
-                V_grad[i, j, :] += dVdA
-                V_grad[j, i, :] += dVdB
+                # handle diagonal by adding second term
+                V_grad[i, [i, j], [j, i], :] = dVdA
+                V_grad[j, [i, j], [j, i], :] += dVdB
 
         # return overlap matrix
         return V_grad
@@ -313,7 +318,12 @@ class ElectronicTISE(TISE):
                     for l, D in enumerate(self.basis[:k+1]):
                         # make use of full symmetric property
                         if (i*(i+1)//2 + j) >= ((k*(k+1))//2 + l):
-                            val = ElectronElectronRepulsion.compute(
+                            V[
+                                [i, i, j, j, k, k, l, l],
+                                [j, j, i, i, l, l, k, k],
+                                [k, l, k, l, i, j, i, j],
+                                [l, k, l, k, j, i, j, i]
+                            ] = ElectronElectronRepulsion.compute(
                                 # GTO A
                                 A_coeff=A.coeff,
                                 A_alpha=A.alpha,
@@ -345,22 +355,14 @@ class ElectronicTISE(TISE):
                                 # global
                                 R_PP=self.R_PP[i, j, k, l]
                             )
-                            # set values
-                            V[i, j, k, l] = val
-                            V[i, j, l, k] = val
-                            V[j, i, k, l] = val
-                            V[j, i, l, k] = val
-                            V[k, l, i, j] = val
-                            V[k, l, j, i] = val
-                            V[l, k, i, j] = val
-                            V[l, k, j, i] = val
+        
         return V
 
     @cached_property
     def V_ee_grad(self) -> np.ndarray:
         """ Gradient of the Electron-Electron Repulsion Tensor """
         # create empty matrix to hold values
-        V_grad = np.zeros((len(self.basis), len(self.basis), len(self.basis), len(self.basis), 3))
+        V_grad = np.zeros((len(self.basis), len(self.basis), len(self.basis), len(self.basis), len(self.basis), 3))
 
         # compute all values
         for i, A in enumerate(self.basis):
@@ -401,17 +403,37 @@ class ElectronicTISE(TISE):
                                 # global
                                 R_PP=self.R_PP[i, j, k, l]
                             )
-                            # sum up and set entries
-                            val = dVdA + dVdB + dVdC + dVdD
-                            V_grad[i, j, k, l, :] = val
-                            V_grad[i, j, l, k, :] = val
-                            V_grad[j, i, k, l, :] = val
-                            V_grad[j, i, l, k, :] = val
-                            V_grad[k, l, i, j, :] = val
-                            V_grad[k, l, j, i, :] = val
-                            V_grad[l, k, i, j, :] = val
-                            V_grad[l, k, j, i, :] = val
 
+                            # set all values
+                            V_grad[
+                                [i, i, i, i, i, i, i, i],
+                                [i, i, j, j, k, k, l, l],
+                                [j, j, i, i, l, l, k, k],
+                                [k, l, k, l, i, j, i, j],
+                                [l, k, l, k, j, i, j, i],
+                            :] = dVdA
+                            V_grad[
+                                [j, j, j, j, j, j, j, j],
+                                [i, i, j, j, k, k, l, l],
+                                [j, j, i, i, l, l, k, k],
+                                [k, l, k, l, i, j, i, j],
+                                [l, k, l, k, j, i, j, i],
+                            :] += dVdB
+                            V_grad[
+                                [k, k, k, k, k, k, k, k],
+                                [i, i, j, j, k, k, l, l],
+                                [j, j, i, i, l, l, k, k],
+                                [k, l, k, l, i, j, i, j],
+                                [l, k, l, k, j, i, j, i],
+                            :] += dVdC
+                            V_grad[
+                                [l, l, l, l, l, l, l, l],
+                                [i, i, j, j, k, k, l, l],
+                                [j, j, i, i, l, l, k, k],
+                                [k, l, k, l, i, j, i, j],
+                                [l, k, l, k, j, i, j, i],
+                            :] += dVdD
+                            
         return V_grad
     
     @cached_property
