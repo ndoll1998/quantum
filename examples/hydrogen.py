@@ -4,12 +4,13 @@ from scipy.integrate import simps
 from skimage.measure import marching_cubes
 from functools import partial
 import matplotlib.pyplot as plt
+from matplotlib import animation
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def hydrogen() -> plt.Figure:
 
     # create analytic wave function
-    wf = quantum.analytic.HydrogenLike(5, 3, 1)
+    wf = quantum.analytic.HydrogenLike(5, 3, -1)
     # radius containing the wave function
     R = 16
 
@@ -113,7 +114,7 @@ def hydrogen() -> plt.Figure:
     # as initial query points for the trajectories 
     q = quantum.utils.sampling.inverse_transfer_sampling(
         pdf=partial(wf.pdf, t=0), 
-        num_samples=200,
+        num_samples=3000,
         bounds=[[0, R], [0, 2*np.pi], [0, np.pi]],
         delta=0.05
     )
@@ -130,7 +131,7 @@ def hydrogen() -> plt.Figure:
     ax3.scatter(0, 0, 0, alpha=1, color="black")
     # plot all trajectories
     for i in range(Q.shape[1]):
-        ax3.plot(Q[:, i, 0], Q[:, i, 1], Q[:, i, 2], alpha=0.3)
+        ax3.plot(Q[:200, i, 0], Q[:200, i, 1], Q[:200, i, 2], alpha=0.3)
     ax3.set(
         title="Electron Trajectories",
         # use the same limits as for probability
@@ -139,9 +140,28 @@ def hydrogen() -> plt.Figure:
         zlim=ax2.get_zlim(),
     )
 
-    return fig
+
+    # create figure for animation
+    anim_fig, anim_ax = plt.subplots(subplot_kw={"projection": "3d"})
+    actor = anim_ax.scatter(Q[0, :, 0], Q[0, :, 1], Q[0, :, 2], alpha=0.3, marker='.')
+
+    def update(k):
+        # frame update function
+        actor._offsets3d = (Q[k, :, 0], Q[k, :, 1], Q[k, :, 2])
+        return (actor,)
+
+    # animate
+    anim = animation.FuncAnimation(
+        anim_fig, update, 
+        frames=256,
+        interval=20,
+        blit=True
+    )
+
+    return fig, anim
 
 if __name__ == '__main__':
 
-    fig = hydrogen()
-    fig.savefig("/mnt/c/users/Nicla/OneDrive/Bilder/img.png")
+    fig, anim = hydrogen()
+    fig.savefig("./img.png")
+    anim.save("./anim.gif", fps=24)
