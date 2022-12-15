@@ -153,7 +153,7 @@ H_2 = Atom.from_BSE(basis="STO-3G", element="H", origin=[0, 0, 1.4])
 A molecule then is decribed by the union of all the GTOs of its atoms together with the atom positions and nuclei charges. Putting all this information togther, the corresponding electronic schrödinger equation can be created and solved as follows:
 
 ```python
-tise = ElectronicTISE.from_molecule(molecule=H_1 + H_2)
+tise = ElectronicTISE(H_1 + H_2)
 # solve using restricted hartree fock
 E, MOs = tise.restricted_hartree_fock()
 ```

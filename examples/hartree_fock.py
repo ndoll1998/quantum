@@ -25,7 +25,7 @@ def dissociation_curve_H2():
         # update distance between nuclei by updating position of H2
         H2.origin = [0, 0, x]
         # solve electroinic schroedinger equation using hartree-fock
-        E, _, _ = quantum.chemistry.ElectronicTISE.from_molecule(molecule).restricted_hartree_fock()
+        E, _, _ = quantum.chemistry.ElectronicTISE(molecule).restricted_hartree_fock()
         Es.append(E)
 
     # convert distances to angstrom for plotting
