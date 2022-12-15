@@ -1,5 +1,5 @@
 # quantum
-![Unit Tests](https://github.com/ndoll1998/quantum/workflows/Unit%20Tests/badge.svg)
+![Unit Tests](https://github.com/ndoll1998/quantum/workflows/Tests%20Master/badge.svg)
 
 An easy-to-use quantum mechanics library with a focus on visualization. 
 
