@@ -209,3 +209,51 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
             atom.origin = origins[i, :]
         # return molecule
         return mol
+
+class ConjugateGradientsGeometryOptimizer(GradientDescentGeometryOptimizer):
+    
+    def __init__(
+        self, 
+        mol:Molecule,
+        num_occ_orbitals:int =None,
+        alpha:float =0.1,
+        rhf_max_cycles:Optional[int] =None,
+        rhf_tol:Optional[float] =None
+    ) -> None:
+        # initialize geometry optimizer
+        super(ConjugateGradientsGeometryOptimizer, self).__init__(
+            mol=mol,
+            num_occ_orbitals=num_occ_orbitals,
+            alpha=alpha,
+            rhf_max_cycles=rhf_max_cycles,
+            rhf_tol=rhf_tol
+        )
+        self.g = np.zeros((len(mol), 3))
+        self.h = np.zeros((len(mol), 3))
+    
+    def step(self, mol:Molecule) -> Molecule:
+        """ Implements a single gradient descent step.
+            Atom origins are updated inplace.
+
+            Args:
+                mol (Molecule): the original molecule to update
+            
+            Returns:
+                mol (Molecule): the updated molecule
+        """
+        # compute gradients and beta
+        g = self.compute_origin_gradients()
+        # compute beta by Fletcher-Reeves method
+        b = (g*g).sum() / ((self.g*self.g).sum() + 1e-5)
+        b = min(1.0, b) # to avoid explosion at saturation
+        # update gradients and step
+        self.g = g
+        self.h *= b
+        self.h += self.compute_origin_gradients()
+        # compute new origins
+        origins = mol.origins - self.alpha * self.h
+        # update origins inplace because why not
+        for i, atom in enumerate(mol.atoms):
+            atom.origin = origins[i, :]
+        # return molecule
+        return mol

@@ -63,12 +63,12 @@ def geometry_optimization():
     H2 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
     H3 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
     H4 = quantum.chemistry.Atom.from_BSE("STO-3G", "H", origin=np.random.uniform(-1, 1, size=3))
-    C = quantum.chemistry.Atom.from_BSE("STO-3G", "C", origin=np.random.uniform(-1, 1, size=3))
+    C  = quantum.chemistry.Atom.from_BSE("STO-3G", "C") #, origin=np.random.uniform(-1, 1, size=3))
 
     # optimize molecular geometry
-    optim = quantum.chemistry.GradientDescentGeometryOptimizer(
+    optim = quantum.chemistry.ConjugateGradientsGeometryOptimizer(
         mol=H1+H2+H3+H4+C,
-        alpha=0.03,
+        alpha=0.1,
         rhf_max_cycles=1000
     )
     
@@ -79,8 +79,8 @@ def geometry_optimization():
         Cs.append(mol.origins * 0.529177)
 
     print("Final RHF Energy: %.06f" % Es[-1])
-   
- 
+
+
     # create figure for plots
     fig = plt.figure(figsize=(8, 4), tight_layout=True)
     ax1 = fig.add_subplot(1, 2, 1)
