@@ -62,6 +62,52 @@ class ElectronNuclearAttraction(object):
         )
 
     @staticmethod
+    def gradient_wrt_C(
+        Z:np.ndarray,
+        # GTO A
+        A_coeff:np.ndarray,
+        A_alpha:np.ndarray,
+        A_angular:np.ndarray,
+        A_norm:np.ndarray,
+        # GTO B
+        B_coeff:np.ndarray,
+        B_alpha:np.ndarray,
+        B_angular:np.ndarray,
+        B_norm:np.ndarray,
+        # GTO pair AB
+        Ex:ExpansionCoefficients,
+        Ey:ExpansionCoefficients,
+        Ez:ExpansionCoefficients,
+        # global (also depends on nuclei positions)
+        R_PC:HermiteIntegrals
+    ) -> float:
+        # unpack angulars
+        i, k, m = A_angular
+        j, l, n = B_angular
+        # compute pairwise products of coefficients and normalizers
+        a1a2 = A_alpha[:, None, None, None] + B_alpha[None, :, None, None]
+        c1c2 = A_coeff[:, None, None, None] * B_coeff[None, :, None, None]
+        n1n2 = A_norm[:, None, None, None] * B_norm[None, :, None, None]
+
+        # compute
+        return 2.0 * np.pi * np.sum(
+            c1c2 * n1n2 / a1a2 * \
+            -Z[None, None, :, None] * sum((
+                (
+                    Ex.compute(i, j, t) * \
+                    Ey.compute(k, l, u) * \
+                    Ez.compute(m, n, v)
+                )[:, :, None, None] * np.stack([
+                    -R_PC.compute(t+1, u, v, 0),
+                    -R_PC.compute(t, u+1, v, 0),
+                    -R_PC.compute(t, u, v+1, 0),
+                ], axis=-1)
+                for t, u, v in product(range(i+j+1), range(k+l+1), range(m+n+1))
+            )),
+            axis=(0, 1)
+        )
+
+    @staticmethod
     def gradient(
         Z:np.ndarray,
         A_coeff:np.ndarray,
@@ -75,7 +121,7 @@ class ElectronNuclearAttraction(object):
         Ex:ExpansionCoefficients,
         Ey:ExpansionCoefficients,
         Ez:ExpansionCoefficients,
-        R_PC:HermiteIntegrals
+        R_PC:HermiteIntegrals,
     ) -> Tuple[np.ndarray, np.ndarray]:
         
         # unpack angulars

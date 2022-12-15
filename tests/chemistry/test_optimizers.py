@@ -48,7 +48,7 @@ O_basis = [
         angular=[0, 0, 1]
     )
 ]
-
+        
 class TestGradientDescentGeometryOptimizer(object):
 
     def random_water(self):
@@ -67,48 +67,25 @@ class TestGradientDescentGeometryOptimizer(object):
     def test_gradient_water(self, num_runs):
 
         mol = self.random_water()
-        # get molecule parameters
-        basis = mol.basis
-        # these are constant, note that
-        # atom origins are assumed constant
-        C = mol.origins
-        Z = mol.Zs
-
-        # compute gradient
+        # compute analytical gradient
         optim = GradientDescentGeometryOptimizer(mol)
         grads = optim.compute_origin_gradients()
-        # subtract nuclear-nuclear repulsion term as this is not
-        # accounted for in approximation (only the GTO origins are
-        # permuted but the atom positions stay constant, thus the
-        # nuclear-nuclear repulsion gradient is zero)
-        # note that correctness of nuclear-nuclear repulsion
-        # is tested seperately (see `TestIntegralGradients` in
-        # `tests/chemistry/test_tise.py`)
-        grads -= optim.state.tise.E_nn_grad(mol)
 
         # finite difference approximation for each dimension
         for d in range(3):
             eps = 1e-5
             dx = np.eye(3)[d] * eps
-            # approximate gradient of each atom
+            # approximate gradient w.r.t. each atom
             for ai, A in enumerate(mol.atoms):
-
-                dEdA = 0.0
-                # sum up gradient approximations of each
-                # basis element of the current atom
-                for bi, b in enumerate(A.basis):
-                    # global index in basis
-                    i = sum(map(len, mol.atoms[:ai])) + bi
-                    # permute basis
-                    basis_pos_pert = deepcopy(basis)
-                    basis_pos_pert[i].origin = b.origin + dx
-                    basis_neg_pert = deepcopy(basis)
-                    basis_neg_pert[i].origin = b.origin - dx
-                    # solve for permuted energies
-                    E_p, _, _ = ElectronicTISE(basis_pos_pert, C, Z).restricted_hartree_fock()
-                    E_n, _, _ = ElectronicTISE(basis_neg_pert, C, Z).restricted_hartree_fock()
-                    # finite difference approximation
-                    dEdA += (E_p - E_n) / (2.0 * eps)
-
-                # compute
+                # perturb origin of atom
+                mol_pos_pert = deepcopy(mol)
+                mol_neg_pert = deepcopy(mol)
+                mol_pos_pert.atoms[ai].origin = A.origin + dx
+                mol_neg_pert.atoms[ai].origin = A.origin - dx
+                # compute energies of perturbed molecules
+                E_p, _, _ = ElectronicTISE(mol_pos_pert).restricted_hartree_fock()
+                E_n, _, _ = ElectronicTISE(mol_neg_pert).restricted_hartree_fock()
+                # finite difference approximation
+                dEdA = (E_p - E_n) / (2.0 * eps)
+                # compare
                 np.testing.assert_allclose(grads[ai, d], dEdA, atol=1e-3)

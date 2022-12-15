@@ -126,6 +126,14 @@ class Molecule(object):
         """ Basis of the molecule, i.e. the union of all atom basis """
         return list(chain.from_iterable([a.basis for a in self.atoms]))
 
+    @property
+    def basis_atom_ids(self) -> np.ndarray:
+        """ Map each basis element to the atom id by index. I.e. let B be a basis element
+            corresponding to atom A, then the following statement holds:
+                mol.basis_atom_ids[mol.basis.index(B)] = mol.atoms.index(a)
+        """
+        return np.asarray([i for i, a in enumerate(self.atoms) for _ in range(len(a))])
+
     def __len__(self) -> int:
         return len(self.atoms)
 

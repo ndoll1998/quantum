@@ -34,7 +34,7 @@ class GeometryOptimizer(ABC):
     ) -> None:
         self.n_occ = num_occ_orbitals or (mol.Zs.sum()//2)
         # build hartree-fock keyword arguments
-        self.rhf_kwargs = {'num_occ_orbitals': self.n_occ}
+        self.rhf_kwargs = {}
         if rhf_max_cycles is not None:
             self.rhf_kwargs['max_cycles'] = rhf_max_cycles
         if rhf_tol is not None:
@@ -65,7 +65,7 @@ class GeometryOptimizer(ABC):
         """
         # update molecule and tise
         self.state.mol = mol
-        self.state.tise = ElectronicTISE.from_molecule(mol)
+        self.state.tise = ElectronicTISE(mol, self.n_occ)
         # solve and save solution in state
         sol_state = self.state.tise.restricted_hartree_fock(**self.rhf_kwargs)
         self.state.E, self.state.C, self.state.F = sol_state
@@ -188,15 +188,8 @@ class GradientDescentGeometryOptimizer(GeometryOptimizer):
             -(Q.T[None, :, :, None] * dSdx)
         ).sum(axis=(1, 2))
 
-        # build atom id vector, indicates which atom a specific
-        # basis element corresponds to
-        atom_ids = np.asarray([i for i, atom in enumerate(self.state.mol.atoms) for _ in range(len(atom))])
-        # transform gradient from basis-level to atom-level by summation
-        # and add nuclear-nuclear repulsion energy gradient
-        return self.state.tise.E_nn_grad(self.state.mol) + np.asarray([
-            dEdx[atom_ids == i, :].sum(axis=0)
-            for i in range(len(self.state.mol.atoms))
-        ])
+        # add nuclear-nuclear repulsion gradient and return
+        return dEdx + self.state.tise.E_nn_grad
     
     def step(self, mol:Molecule) -> Molecule:
         """ Implements a single gradient descent step.
